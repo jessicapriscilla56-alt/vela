@@ -145,7 +145,7 @@ function gerarNarrativa(dados, aud, obj, tone, tamanhoTime, momentoEmpresa) {
 
   const introMap = {
     ot: { board: "Os indicadores do período confirmam que a operação de CS/CX está entregando crescimento sustentável", ceo: "Os dados mostram que a estratégia de retenção está gerando resultado concreto", vp: "As métricas do período indicam que a experiência do cliente está se traduzindo em valor de produto", inv: "Os indicadores de retenção e expansão demonstram tração consistente no modelo de receita recorrente" },
-    neu: { board: "Os indicadores do período apresentam um quadro misto que requer atenção e decisão estratégica", ceo: "Os dados revelam oportunidades claras de melhoria que, se adressadas, têm impacto direto na receita", vp: "As métricas de experiência mostram lacunas específicas que afetam retenção e crescimento", inv: "Os indicadores apontam para um momento de ajuste estratégico antes de escalar" },
+    neu: { board: "Os indicadores do período apresentam um quadro misto que requer atenção e decisão estratégica", ceo: "Os dados revelam oportunidades claras de melhoria que, se endereçadas, têm impacto direto na receita", vp: "As métricas de experiência mostram lacunas específicas que afetam retenção e crescimento", inv: "Os indicadores apontam para um momento de ajuste estratégico antes de escalar" },
     urg: { board: "Os sinais da operação indicam uma janela crítica: sem ação nas próximas semanas, o impacto financeiro será mensurável", ceo: "Os dados revelam um risco real de receita que exige decisão imediata — não monitoramento", vp: "As métricas de experiência estão sinalizando problemas que, se não tratados agora, se tornam estruturais", inv: "Os indicadores exigem atenção urgente: o custo de não agir agora é maior que o custo de agir" },
   };
 
@@ -168,13 +168,13 @@ function gerarNarrativa(dados, aud, obj, tone, tamanhoTime, momentoEmpresa) {
     exp: `apresentar uma oportunidade de expansão de receita`,
   };
 
-  return `✦ CONTEXTO EXECUTIVO — Para ${audMap[aud]}\n${introMap[tone][aud]}, com impacto direto nos pilares de retenção e crescimento de receita recorrente.\n\n✦ O QUE OS NÚMEROS DIZEM\nNPS ${nps >= 50 ? `em ${nps} — zona de promotores, com potencial real de expansão via indicação` : nps >= 20 ? `em ${nps} — zona neutra, o que significa clientes que ficam mas não crescem` : `em ${nps} — zona de risco, sinal de que a experiência não está sustentando a relação`}. Churn de ${churn}% ${churn <= 2 ? "— abaixo da média de mercado, operação saudável" : churn <= 5 ? "— dentro da zona de atenção, exige monitoramento ativo" : "— acima do tolerável, com impacto direto no MRR líquido"}. CSAT ${csat >= 4.5 ? `${csat}/5 — excelência na interação` : csat >= 3.5 ? `${csat}/5 — bom, mas com margem de melhoria identificada` : `${csat}/5 — abaixo do esperado, impactando retenção`}.\n\n✦ TRADUÇÃO PARA ${audMap[aud].toUpperCase()}\nPara ${objMap[obj]}: ${contextualNarrativa(aud, obj, tone, nps, churn, mrr, contextoSemana)}\n\n✦ CONTEXTO DA OPERAÇÃO\n${timeSizeNote} ${momentoNote}\n\n${contextoSemana ? `Situação atual: ${contextoSemana.substring(0, 150)}${contextoSemana.length > 150 ? "..." : ""}` : rawMetricas ? `Dados base: ${rawMetricas.substring(0, 150)}` : ""}\n\n✦ PRÓXIMO PASSO RECOMENDADO\n${obj === "apr" ? `Aprovação necessária: definir as 3 alavancas prioritárias de retenção e expansão para o próximo trimestre, com orçamento e ownership claro. ROI estimado: cada 1% de redução no churn equivale a R$${Math.round(mrr * 0.4).toLocaleString("pt-BR")} de receita preservada.` : obj === "alert" ? `Ação urgente: alinhar plano de resposta nas próximas 72 horas. Sem intervenção, o impacto projetado é de R$${Math.round(mrr * churn / 100 * 3).toLocaleString("pt-BR")} em risco no próximo trimestre.` : obj === "exp" ? `Oportunidade de expansão: os clientes com NPS acima de 8 representam o pool mais qualificado para upsell. Com abordagem estruturada, potencial de expansão de ${Math.round(mrr * 0.15).toLocaleString("pt-BR")} em MRR incremental.` : `Proposta: alinhar as 3 alavancas prioritárias em sessão de 90min com as lideranças nas próximas 2 semanas.`}`;
+  return `✦ CONTEXTO EXECUTIVO — Para ${audMap[aud]}\n${introMap[tone][aud]}, com impacto direto nos pilares de retenção e crescimento de receita recorrente.\n\n✦ O QUE OS NÚMEROS DIZEM\nNPS ${nps >= 50 ? `em ${nps} — zona de promotores, com potencial real de expansão via indicação` : nps >= 20 ? `em ${nps} — zona neutra, o que significa clientes que ficam mas não crescem` : `em ${nps} — zona de risco, sinal de que a experiência não está sustentando a relação`}. Churn de ${churn}% ${churn <= 2 ? "— abaixo da média de mercado, operação saudável" : churn <= 5 ? "— dentro da zona de atenção, exige monitoramento ativo" : "— acima do tolerável, com impacto direto no MRR líquido"}. CSAT ${csat >= 4.5 ? `${csat}/5 — excelência na interação` : csat >= 3.5 ? `${csat}/5 — bom, mas com margem de melhoria identificada` : `${csat}/5 — abaixo do esperado, impactando retenção`}.\n\n✦ TRADUÇÃO PARA ${audMap[aud].toUpperCase()}\nPara ${objMap[obj]}: ${contextualNarrativa(aud, obj, tone, nps, churn, mrr, contextoSemana)}\n\n✦ CONTEXTO DA OPERAÇÃO\n${timeSizeNote} ${momentoNote}\n\n${contextoSemana ? `Situação atual: ${contextoSemana.substring(0, 150)}${contextoSemana.length > 150 ? "..." : ""}` : rawMetricas ? `Dados base: ${rawMetricas.substring(0, 150)}` : ""}\n\n✦ PRÓXIMO PASSO RECOMENDADO\n${obj === "apr" ? `Aprovação necessária: definir as 3 alavancas prioritárias de retenção e expansão para o próximo trimestre, com orçamento e ownership claro. ROI estimado: cada 1% de redução no churn equivale a R$${Math.round(mrr * 0.4).toLocaleString("pt-BR")} de receita preservada.` : obj === "alert" ? `Ação urgente: alinhar plano de resposta nas próximas 72 horas. Sem intervenção, o impacto projetado é de R$${Math.round(mrr * churn / 100 * 3).toLocaleString("pt-BR")} em risco no próximo trimestre.` : obj === "exp" ? `Oportunidade de expansão: os clientes com NPS acima de 8 representam a base mais qualificada para expansão de receita. Com abordagem estruturada, potencial de ${Math.round(mrr * 0.15).toLocaleString("pt-BR")} em MRR incremental.` : `Proposta: alinhar as 3 alavancas prioritárias em sessão de 90min com as lideranças nas próximas 2 semanas.`}`;
 }
 
 function contextualNarrativa(aud, obj, tone, nps, churn, mrr, ctx) {
   if (obj === "alert") return `O sinal está claro e o custo de não agir agora é maior que o custo de agir. ${ctx ? `A situação descrita — "${ctx.substring(0, 80)}..." — precisa de resposta estruturada, não de monitoramento.` : "Cada semana sem ação aumenta o risco de churn em cascata."}`;
   if (obj === "apr") return `O investimento em CS/CX tem ROI mensurável: reduzir churn em 1% equivale a preservar receita recorrente, enquanto expandir base ativa é 5x mais barato que adquirir. ${nps < 30 ? "Com NPS na zona de risco, o investimento agora evita custo maior de recuperação." : "Com a base atual, o momento é de acelerar — não de manter."}`;
-  if (obj === "exp") return `Os clientes com maior NPS e menor churn são o pool natural de expansão. A oportunidade não está em prospecção — está dentro da base atual, esperando a conversa certa no momento certo.`;
+  if (obj === "exp") return `Os clientes com maior NPS e menor churn são a base natural para expansão de receita. A oportunidade não está em prospecção — está dentro da base atual, esperando a conversa certa no momento certo.`;
   return `${nps >= 40 && churn <= 4 ? "A operação está performando dentro do esperado para o estágio da empresa, com fundamentos sólidos para o próximo ciclo de crescimento." : "Os indicadores revelam oportunidades específicas que, se tratadas, têm impacto direto na receita e na sustentabilidade do crescimento."}`;
 }
 
@@ -229,6 +229,49 @@ const TextArea = ({ rows = 4, style, ...props }) => (
   <textarea rows={rows} style={{ width: "100%", background: V.surface2, border: `1px solid ${V.border}`, borderRadius: 9, padding: "11px 13px", color: V.text, fontFamily: "inherit", fontSize: 15, resize: "vertical", outline: "none", lineHeight: 1.7, boxSizing: "border-box", ...style }}
     onFocus={e => e.target.style.borderColor = V.amber} onBlur={e => e.target.style.borderColor = V.border} {...props} />
 );
+
+// TextArea com microfone
+function VoiceTextArea({ rows = 4, value, onChange, placeholder, style }) {
+  const [rec, setRec] = useState("idle");
+  const recRef = useRef(null);
+
+  const toggle = () => {
+    if (rec === "recording") {
+      recRef.current?.stop();
+      setRec("idle");
+      return;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    const r = new SR();
+    r.lang = "pt-BR"; r.continuous = true; r.interimResults = false;
+    r.onresult = (e) => {
+      let t = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) t += e.results[i][0].transcript + " ";
+      }
+      if (t) onChange({ target: { value: (value || "") + t } });
+    };
+    r.onend = () => setRec("idle");
+    r.onerror = () => setRec("idle");
+    r.start();
+    recRef.current = r;
+    setRec("recording");
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <textarea rows={rows} value={value} onChange={onChange} placeholder={placeholder}
+        style={{ width: "100%", background: V.surface2, border: `1px solid ${rec === "recording" ? V.rose : V.border}`, borderRadius: 9, padding: "11px 42px 11px 13px", color: V.text, fontFamily: "inherit", fontSize: 15, resize: "vertical", outline: "none", lineHeight: 1.7, boxSizing: "border-box", ...style }}
+        onFocus={e => e.target.style.borderColor = rec === "recording" ? V.rose : V.amber}
+        onBlur={e => e.target.style.borderColor = rec === "recording" ? V.rose : V.border} />
+      <button onClick={toggle}
+        style={{ position: "absolute", right: 10, top: 10, width: 28, height: 28, borderRadius: 8, border: "none", background: rec === "recording" ? V.rose : V.surface3, color: rec === "recording" ? "#fff" : V.text2, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+        {rec === "recording" ? "⏹" : "🎙"}
+      </button>
+    </div>
+  );
+}
 
 const Sel = ({ children, style, ...props }) => (
   <select style={{ width: "100%", background: V.surface2, border: `1px solid ${V.border}`, borderRadius: 9, padding: "11px 13px", color: V.text, fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box", ...style }} {...props}>{children}</select>
@@ -439,13 +482,24 @@ function CheckinFlow({ onComplete, isUpdate }) {
 
   if (!modo) return (
     <div>
-      <div style={{ textAlign: "center", padding: "8px 0 28px" }}>
+      <div style={{ textAlign: "center", padding: "8px 0 20px" }}>
         <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 24, fontWeight: 700, marginBottom: 10, letterSpacing: -0.5 }}>
-          {isUpdate ? "Check-out" : "Bem-vindo ao"} <span style={{ color: V.amber }}>Vela</span>
+          {isUpdate ? "Check-out semanal" : "Bem-vindo ao"} <span style={{ color: V.amber }}>{isUpdate ? "" : "Vela"}</span>
         </div>
-        <div style={{ color: V.text2, fontSize: 13, lineHeight: 1.7, maxWidth: 280, margin: "0 auto" }}>
-          {isUpdate ? "Atualize seu contexto. Todos os módulos refletem sua semana atual." : "Seu copiloto de liderança em CS e CX. Responda algumas perguntas ou fale por áudio."}
-        </div>
+        {isUpdate ? (
+          <div style={{ padding: "12px 16px", background: V.tealDim, border: `1px solid ${V.teal}25`, borderRadius: 10, marginBottom: 4 }}>
+            <div style={{ fontSize: 12, color: V.teal, fontWeight: 700, marginBottom: 4 }}>Atualização semanal</div>
+            <div style={{ color: V.text2, fontSize: 12, lineHeight: 1.7 }}>Feito para ser rápido — 4 perguntas para atualizar seus números e contexto da semana. Todos os módulos vão refletir o novo contexto.</div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ padding: "12px 16px", background: V.amberGlow, border: `1px solid ${V.amber}20`, borderRadius: 10, marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: V.amber, fontWeight: 700, marginBottom: 4 }}>Configuração inicial — feita uma vez</div>
+              <div style={{ color: V.text2, fontSize: 12, lineHeight: 1.7 }}>Vamos entender quem você é e como está sua operação. Com isso, todos os módulos ficam pré-preenchidos com seu contexto. Leva cerca de 3 minutos.</div>
+            </div>
+            <div style={{ fontSize: 11, color: V.text2, textAlign: "center" }}>Depois use o <span style={{ color: V.teal }}>check-out semanal</span> para atualizar a cada semana</div>
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
@@ -749,7 +803,7 @@ function CockpitPage({ dados }) {
 
         <div style={{ marginBottom: 16 }}>
           <Label>O que está acontecendo com {focoAtual?.label.split(" ").slice(1).join(" ")}?</Label>
-          <TextArea value={indicador} onChange={e => setIndicador(e.target.value)} rows={4}
+          <VoiceTextArea value={indicador} onChange={e => setIndicador(e.target.value)} rows={4}
             placeholder={`Ex: Meu ${focoAtual?.desc.toLowerCase()} caiu de X para Y nos últimos 30 dias. Tivemos 3 situações específicas de... O time está fazendo... Eu suspeito que o problema está em...`} />
         </div>
 
@@ -907,7 +961,7 @@ function MatrizPage({ dados }) {
 
         <div style={{ marginBottom: 14 }}>
           <Label>Contexto da semana</Label>
-          <TextArea value={ctx} onChange={e => updateCtx(e.target.value)} rows={3}
+          <VoiceTextArea value={ctx} onChange={e => updateCtx(e.target.value)} rows={3}
             placeholder="O que está acontecendo? O que está pesando mais? Quais são as principais demandas?" />
         </div>
 
@@ -991,7 +1045,7 @@ function FeedbackPage({ dados }) {
 
         <div style={{ marginBottom: 13 }}>
           <Label>Descreva a situação</Label>
-          <TextArea value={desafio} onChange={e => setDesafio(e.target.value)} rows={4}
+          <VoiceTextArea value={desafio} onChange={e => setDesafio(e.target.value)} rows={4}
             placeholder="Ex: Ela está entregando abaixo do esperado nas renovações. Já dei feedbacks informais mas não mudou. Tenho 3 exemplos concretos desta semana..." />
         </div>
 
@@ -1064,7 +1118,7 @@ function CrisePage({ dados }) {
       <Card>
         <div style={{ marginBottom: 13 }}>
           <Label>O que está acontecendo?</Label>
-          <TextArea value={problema} onChange={e => setProblema(e.target.value)} rows={4}
+          <VoiceTextArea value={problema} onChange={e => setProblema(e.target.value)} rows={4}
             placeholder="Descreva o problema: o que aconteceu, quando, qual cliente, o que o cliente está sentindo ou pedindo..." />
         </div>
 
@@ -1103,7 +1157,7 @@ function CrisePage({ dados }) {
 
         <div style={{ marginBottom: 16 }}>
           <Label>O que você já fez até agora? (opcional)</Label>
-          <TextArea value={jaFez} onChange={e => setJaFez(e.target.value)} rows={2}
+          <VoiceTextArea value={jaFez} onChange={e => setJaFez(e.target.value)} rows={2}
             placeholder="Ex: Já entrei em contato com o cliente, estou aguardando retorno do time técnico..." />
         </div>
 
@@ -1191,7 +1245,7 @@ function NarrativaPage({ dados }) {
 
         <div style={{ marginBottom: 13 }}>
           <Label>Seus dados e contexto</Label>
-          <TextArea value={editDados} onChange={e => setEditDados(e.target.value)} rows={5}
+          <VoiceTextArea value={editDados} onChange={e => setEditDados(e.target.value)} rows={5}
             placeholder="Ex: NPS 38, churn 3.2%, CSAT 4.1/5. Tivemos 2 churns acima de R$5k por problema de onboarding. MRR expansão em R$24k..." />
         </div>
 
