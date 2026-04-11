@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Vela — O copiloto do líder de CS e CX. Baseado no livro Liderança Customer Centric." />
+<title>Vela — Copiloto do Líder de CS/CX</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #08080E;
+    --surface: #0F1018;
+    --surface2: #161820;
+    --border: #1E2030;
+    --border2: #2A2E40;
+    --amber: #F0A500;
+    --amber2: #D4920A;
+    --amber-dim: rgba(240,165,0,0.08);
+    --amber-glow: rgba(240,165,0,0.04);
+    --teal: #2DD4BF;
+    --text: #F0F2F8;
+    --text2: #8890B0;
+    --text3: #6B7194;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ── NOISE TEXTURE ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(8,8,14,0.92);
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .nav-logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--amber), var(--amber2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #08080E;
+    font-weight: 700;
+  }
+
+  .nav-logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .nav-cta {
+    background: linear-gradient(135deg, var(--amber), var(--amber2));
+    color: #08080E;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 22px;
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+
+  .nav-cta:hover { opacity: 0.85; transform: translateY(-1px); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-glow {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(240,165,0,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--amber-dim);
+    border: 1px solid rgba(240,165,0,0.2);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--amber);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(42px, 8vw, 80px);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 24px;
+    color: #F0F2F8;
+    animation: fadeUp 0.8s ease 0.1s both;
+  }
+
+  .hero-title em {
+    font-style: italic;
+    color: var(--amber);
+  }
+
+  .hero-sub {
+    font-size: clamp(16px, 2.5vw, 20px);
+    color: var(--text2);
+    max-width: 560px;
+    line-height: 1.7;
+    margin-bottom: 48px;
+    font-weight: 300;
+    animation: fadeUp 0.8s ease 0.2s both;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    animation: fadeUp 0.8s ease 0.3s both;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--amber), var(--amber2));
+    color: #08080E;
+    border: none;
+    border-radius: 14px;
+    padding: 18px 40px;
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.25s;
+    box-shadow: 0 0 40px rgba(240,165,0,0.2);
+    display: inline-block;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 50px rgba(240,165,0,0.35);
+  }
+
+  .hero-note {
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  /* ── APP PREVIEW ── */
+  .preview-wrap {
+    margin-top: 80px;
+    position: relative;
+    animation: fadeUp 1s ease 0.5s both;
+  }
+
+  .preview-phones {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    align-items: flex-end;
+  }
+
+  .phone {
+    width: 200px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 28px;
+    padding: 16px;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+  }
+
+  .phone.center {
+    width: 240px;
+    margin-bottom: 20px;
+    border-color: rgba(240,165,0,0.25);
+    box-shadow: 0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(240,165,0,0.08);
+  }
+
+  .phone-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .phone-icon {
+    width: 26px;
+    height: 26px;
+    background: linear-gradient(135deg, var(--amber), var(--amber2));
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #08080E;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .phone-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .phone-sub {
+    font-size: 8px;
+    color: var(--text2);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .principle-card {
+    background: var(--amber-dim);
+    border: 1px solid rgba(240,165,0,0.15);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .principle-label {
+    font-size: 7px;
+    color: var(--amber);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .principle-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  .btn-phone {
+    width: 100%;
+    background: linear-gradient(135deg, var(--amber), var(--amber2));
+    color: #08080E;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: 'Playfair Display', serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  .module-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .module-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 8px;
+    font-size: 9px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .module-chip.active {
+    border-color: rgba(240,165,0,0.3);
+    color: var(--amber);
+    background: var(--amber-dim);
+  }
+
+  .result-preview {
+    background: var(--amber-glow);
+    border: 1px solid rgba(240,165,0,0.15);
+    border-left: 2px solid var(--amber);
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 8px;
+  }
+
+  .result-label {
+    font-size: 7px;
+    color: var(--amber);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .result-text {
+    font-size: 9px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  /* ── SECTIONS ── */
+  section {
+    padding: 100px 24px;
+    position: relative;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--amber);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .section-label::before {
+    content: '';
+    width: 20px;
+    height: 1px;
+    background: var(--amber);
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+  }
+
+  .section-title em {
+    font-style: italic;
+    color: var(--amber);
+  }
+
+  .section-desc {
+    font-size: 16px;
+    color: var(--text2);
+    line-height: 1.8;
+    max-width: 560px;
+    font-weight: 300;
+    margin-bottom: 56px;
+  }
+
+  /* ── PAIN SECTION ── */
+  .pain-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .pain-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    transition: border-color 0.3s;
+  }
+
+  .pain-card:hover { border-color: var(--border2); }
+
+  .pain-icon {
+    font-size: 24px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .pain-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+
+  .pain-desc {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.7;
+  }
+
+  /* ── MODULES SECTION ── */
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+  }
+
+  .module-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .module-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--amber), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .module-card:hover { border-color: rgba(240,165,0,0.2); transform: translateY(-2px); }
+  .module-card:hover::before { opacity: 1; }
+
+  .module-emoji {
+    font-size: 20px;
+    margin-bottom: 14px;
+    display: block;
+    font-family: monospace;
+    color: var(--amber);
+  }
+
+  .module-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .module-desc {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  /* ── LIVRO SECTION ── */
+  .book-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 56px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+  }
+
+  .book-quote {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(20px, 3vw, 28px);
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+
+  .book-quote-author {
+    font-size: 12px;
+    color: var(--amber);
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .book-principles {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .book-principle {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    background: var(--amber-dim);
+    border: 1px solid rgba(240,165,0,0.1);
+    border-radius: 10px;
+  }
+
+  .bp-icon {
+    color: var(--amber);
+    font-family: monospace;
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .bp-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  .bp-cap {
+    font-size: 10px;
+    color: var(--text2);
+    margin-top: 2px;
+  }
+
+  /* ── SOBRE ── */
+  .sobre-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 60px;
+    align-items: start;
+  }
+
+  .sobre-avatar {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    color: var(--amber);
+    max-width: 220px;
+  }
+
+  .sobre-name {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+
+  .sobre-role {
+    font-size: 13px;
+    color: var(--amber);
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .sobre-bio {
+    font-size: 15px;
+    color: var(--text2);
+    line-height: 1.9;
+    font-weight: 300;
+  }
+
+  /* ── PRICING ── */
+  .pricing-card {
+    max-width: 460px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid rgba(240,165,0,0.25);
+    border-radius: 24px;
+    padding: 48px;
+    text-align: center;
+    box-shadow: 0 0 80px rgba(240,165,0,0.06);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pricing-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent);
+  }
+
+  .pricing-badge {
+    display: inline-block;
+    background: var(--amber-dim);
+    border: 1px solid rgba(240,165,0,0.2);
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--amber);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .pricing-price {
+    font-family: 'Playfair Display', serif;
+    font-size: 64px;
+    font-weight: 900;
+    letter-spacing: -3px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .pricing-price span {
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--text2);
+    letter-spacing: 0;
+  }
+
+  .pricing-period {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 32px;
+  }
+
+  .pricing-features {
+    list-style: none;
+    margin-bottom: 36px;
+    text-align: left;
+  }
+
+  .pricing-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text2);
+  }
+
+  .pricing-features li:last-child { border-bottom: none; }
+
+  .pricing-features li::before {
+    content: '✦';
+    color: var(--amber);
+    font-size: 10px;
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+
+  .pricing-note {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 16px;
+  }
+
+  /* ── CTA FINAL ── */
+  .cta-section {
+    text-align: center;
+    padding: 120px 24px;
+    position: relative;
+  }
+
+  .cta-glow {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 300px;
+    background: radial-gradient(ellipse, rgba(240,165,0,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 900;
+    letter-spacing: -2px;
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  .cta-title em { font-style: italic; color: var(--amber); }
+
+  .cta-sub {
+    font-size: 16px;
+    color: var(--text2);
+    max-width: 440px;
+    margin: 0 auto 40px;
+    font-weight: 300;
+    line-height: 1.7;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .footer-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .footer-note {
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .footer-book {
+    font-size: 12px;
+    color: var(--text2);
+    font-style: italic;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .book-section { grid-template-columns: 1fr; padding: 32px; gap: 32px; }
+    .sobre-grid { grid-template-columns: 1fr; gap: 32px; }
+    .phone:not(.center) { display: none; }
+    footer { flex-direction: column; text-align: center; }
+    .pricing-card { padding: 32px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-icon">◎</div>
+    <span class="nav-logo-text">Vela</span>
+  </a>
+  <a href="https://pay.hotmart.com/R105342516J" target="_blank" class="nav-cta">✦ Assinar por R$19,90/mês</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+
+  <div class="hero-eyebrow">
+    ◈ Copiloto do líder de CS/CX
+  </div>
+
+  <h1 class="hero-title">
+    Lidere com mais<br>
+    <em>clareza.</em>
+  </h1>
+
+  <p class="hero-sub">
+    O Vela é um copiloto de liderança feito para quem lidera Customer Success e Customer Experience em startups. Baseado no livro <em>Liderança Customer Centric</em>.
+  </p>
+
+  <div class="hero-actions">
+    <a href="https://pay.hotmart.com/R105342516J" target="_blank" class="btn-primary">✦ Garantir meu acesso antecipado</a>
+    <span class="hero-note">Pré-venda · Preço travado para sempre · Cancele quando quiser</span>
+  </div>
+
+  <!-- APP PREVIEW -->
+  <div class="preview-wrap">
+    <div class="preview-phones">
+      <div class="phone">
+        <div class="phone-header">
+          <div class="phone-icon">◆</div>
+          <div>
+            <div class="phone-title" style="font-size:12px">Cockpit</div>
+            <div class="phone-sub">Análise de indicadores</div>
+          </div>
+        </div>
+        <div class="module-row">
+          <div class="module-chip active">📉 Churn</div>
+          <div class="module-chip">⭐ NPS</div>
+          <div class="module-chip">💬 CSAT</div>
+        </div>
+        <div class="result-preview">
+          <div class="result-label">✦ Diagnóstico</div>
+          <div class="result-text">Churn elevado raramente é sobre o produto. Quase sempre é sobre o que aconteceu — ou não aconteceu — na jornada do cliente...</div>
+        </div>
+      </div>
+
+      <div class="phone center">
+        <div class="phone-header">
+          <div class="phone-icon">◎</div>
+          <div>
+            <div class="phone-title">Vela</div>
+            <div class="phone-sub">Copiloto do líder</div>
+          </div>
+        </div>
+        <div class="principle-card">
+          <div class="principle-label">◈ Princípio da semana</div>
+          <div class="principle-text">"Fato não tem defesa. Julgamento tem."</div>
+          <div style="font-size:8px;color:var(--text2);margin-top:5px">— Liderança Customer Centric</div>
+        </div>
+        <div class="module-row">
+          <div class="module-chip active">◆ Cockpit</div>
+          <div class="module-chip">◇ Matriz</div>
+          <div class="module-chip">▷ Feedback</div>
+          <div class="module-chip">⚡ Crise</div>
+        </div>
+        <div class="btn-phone">✦ Fazer check-in e começar</div>
+      </div>
+
+      <div class="phone">
+        <div class="phone-header">
+          <div class="phone-icon">▷</div>
+          <div>
+            <div class="phone-title" style="font-size:12px">Feedback</div>
+            <div class="phone-sub">Fato → Impacto → Futuro</div>
+          </div>
+        </div>
+        <div class="module-row">
+          <div class="module-chip active">🔁 Recorrente</div>
+          <div class="module-chip">🤝 Relacionamento</div>
+        </div>
+        <div class="result-preview">
+          <div class="result-label">✦ Abertura sugerida</div>
+          <div class="result-text">"Preciso te dar um retorno importante. Dado o seu nível de maturidade, acredito que você vai entender..."</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- DORES -->
+<section>
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">O problema</div>
+      <h2 class="section-title">Você lidera sozinho<br>um dos papéis <em>mais complexos</em>.</h2>
+      <p class="section-desc">Líderes de CS e CX enfrentam pressão de todas as direções — do time, dos clientes e da diretoria — e muitas vezes não têm com quem conversar sobre os desafios do dia a dia.</p>
+    </div>
+
+    <div class="pain-grid reveal">
+      <div class="pain-card">
+        <span class="pain-icon">💬</span>
+        <div class="pain-title">Feedbacks difíceis que ficam na cabeça</div>
+        <p class="pain-desc">Você sabe que precisa ter a conversa. Só não sabe como estruturar sem soar agressivo ou vago demais.</p>
+      </div>
+      <div class="pain-card">
+        <span class="pain-icon">📊</span>
+        <div class="pain-title">Métricas que ninguém da diretoria entende</div>
+        <p class="pain-desc">NPS, churn, CSAT — você sabe o que significam. Mas traduzir isso para linguagem executiva é outra batalha.</p>
+      </div>
+      <div class="pain-card">
+        <span class="pain-icon">🔥</span>
+        <div class="pain-title">Crises que exigem decisão imediata</div>
+        <p class="pain-desc">Quando um cliente importante está em risco, você precisa pensar rápido e agir certo. Sem roteiro.</p>
+      </div>
+      <div class="pain-card">
+        <span class="pain-icon">⏰</span>
+        <div class="pain-title">Semanas que começam sem direção</div>
+        <p class="pain-desc">O que é urgente? O que é importante? Onde você deveria estar gastando sua energia estratégica?</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- MÓDULOS -->
+<section>
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">A solução</div>
+      <h2 class="section-title">Seis módulos para<br>os desafios <em>reais</em> da liderança.</h2>
+      <p class="section-desc">Cada módulo foi construído com base nos frameworks do livro Liderança Customer Centric. Não é teoria — é a metodologia que já foi testada na prática.</p>
+    </div>
+
+    <div class="modules-grid reveal">
+      <div class="module-card">
+        <span class="module-emoji">◆</span>
+        <div class="module-name">Cockpit de Indicadores</div>
+        <p class="module-desc">Descreva o que está acontecendo com seu Churn, NPS, CSAT ou Expansão. Receba diagnóstico, causas prováveis e plano de ação específico.</p>
+      </div>
+      <div class="module-card">
+        <span class="module-emoji">▷</span>
+        <div class="module-name">Feedback Inteligente</div>
+        <p class="module-desc">Framework Fato → Impacto → Futuro do livro. A abordagem muda de acordo com o nível do liderado, tipo de comportamento e histórico.</p>
+      </div>
+      <div class="module-card">
+        <span class="module-emoji">◇</span>
+        <div class="module-name">Próximos Movimentos</div>
+        <p class="module-desc">Matriz de Eisenhower aplicada ao CS/CX. Recomendação estratégica personalizada pelo tipo de semana, tamanho do time e momento da empresa.</p>
+      </div>
+      <div class="module-card">
+        <span class="module-emoji">⚡</span>
+        <div class="module-name">Gestão de Crise</div>
+        <p class="module-desc">Descreva o problema. O Vela estrutura o diagnóstico completo — impacto, escala, urgência e plano de resposta — baseado nas 5 dimensões do livro.</p>
+      </div>
+      <div class="module-card">
+        <span class="module-emoji">✦</span>
+        <div class="module-name">Narrativa para Diretoria</div>
+        <p class="module-desc">Converte seus dados técnicos em linguagem executiva. Personalizado por audiência, objetivo e momento da empresa.</p>
+      </div>
+      <div class="module-card">
+        <span class="module-emoji">◈</span>
+        <div class="module-name">Princípio da Semana</div>
+        <p class="module-desc">Toda semana um princípio do livro como âncora. Uma frase que muda como você lidera naquela semana.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- LIVRO -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">A metodologia</div>
+    <h2 class="section-title" style="margin-bottom:48px">Construído sobre o livro<br><em>Liderança Customer Centric.</em></h2>
+
+    <div class="book-section">
+      <div>
+        <p class="book-quote">"O que você construiu não é uma operação. É gente."</p>
+        <p class="book-quote-author">— Liderança Customer Centric · Parte 4</p>
+      </div>
+      <div class="book-principles">
+        <div class="book-principle">
+          <span class="bp-icon">✦</span>
+          <div>
+            <div class="bp-text">"Fato não tem defesa. Julgamento tem."</div>
+            
+          </div>
+        </div>
+        <div class="book-principle">
+          <span class="bp-icon">✦</span>
+          <div>
+            <div class="bp-text">"Autonomia sem abandono."</div>
+            
+          </div>
+        </div>
+        <div class="book-principle">
+          <span class="bp-icon">✦</span>
+          <div>
+            <div class="bp-text">"Progresso primeiro. Ordem vem depois."</div>
+            
+          </div>
+        </div>
+        <div class="book-principle">
+          <span class="bp-icon">✦</span>
+          <div>
+            <div class="bp-text">"Liderança intencional é agir hoje com base no que você quer que exista amanhã."</div>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- SOBRE -->
+<section>
+  <div class="container">
+    <div class="sobre-grid reveal">
+      <div class="sobre-avatar">J</div>
+      <div>
+        <div class="section-label">Quem criou</div>
+        <h2 class="sobre-name">Jéssica</h2>
+        <div class="sobre-role">Head of CS/CX · Autora · Criadora do Vela</div>
+        <p class="sobre-bio">Construí a área de Jornada do Cliente de uma empresa de tecnologia do zero. Aprendi o mercado em movimento, sem mapa, muitas vezes sem orçamento para o que seria ideal. Errei. Ajustei.<br><br>Cada módulo do Vela nasceu de uma situação real que vivi, de uma conversa difícil que precisei ter, de uma decisão que custou. O Vela é a ferramenta que eu gostaria de ter tido.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- PRICING / LISTA -->
+<section id="lista">
+  <div class="container">
+    <div class="reveal" style="text-align:center;margin-bottom:48px">
+      <div class="section-label" style="justify-content:center">Acesso antecipado</div>
+      <h2 class="section-title">Entre antes de todo mundo.</h2>
+    </div>
+
+    <div class="pricing-card reveal">
+      <div class="pricing-badge">✦ Pré-venda · Vagas limitadas</div>
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:14px;margin-bottom:6px">
+        <div style="font-size:18px;color:var(--text2);text-decoration:line-through;font-family:'DM Sans',sans-serif">R$39,90</div>
+        <div class="pricing-price">R$19,90<span>/mês</span></div>
+      </div>
+      <p class="pricing-period">Preço travado para sempre · Sobe para R$39,90 no lançamento oficial</p>
+
+      <ul class="pricing-features">
+        <li>6 módulos de liderança baseados no livro</li>
+        <li>Respostas personalizadas pelo seu contexto real</li>
+        <li>Princípio da semana — metodologia do livro</li>
+        <li>Funciona como app no celular (iOS e Android)</li>
+        <li>Sem anúncios. Sem distrações. Só liderança.</li>
+        <li>Acesso à versão beta antes do lançamento oficial</li>
+      </ul>
+
+      <a href="https://pay.hotmart.com/R105342516J" target="_blank" class="btn-primary" style="display:block;width:100%;text-align:center;border-radius:12px">
+        ✦ Assinar agora — R$19,90/mês
+      </a>
+      <p class="pricing-note">Gratuito agora · Sem cartão necessário · Cancele quando quiser</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <h2 class="cta-title reveal">Lidere com mais<br><em>clareza.</em></h2>
+  <p class="cta-sub reveal">Para os líderes de CS e CX que querem mais do que reagir — querem construir.</p>
+  <a href="https://pay.hotmart.com/R105342516J" target="_blank" class="btn-primary reveal">✦ Garantir meu acesso antecipado</a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Vela</div>
+  <div class="footer-book">Baseado em <em>Liderança Customer Centric</em></div>
+  <div class="footer-note">© 2025 · Feito para líderes de CS e CX</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>
