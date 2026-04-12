@@ -77,17 +77,10 @@ function gerarTarefas(semana, prioridade, desafio) {
 }
 
 // ── API DO CLAUDE ──
-const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_KEY;
-
 async function chamarClaude(prompt) {
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+  const resp = await fetch("/api/claude", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_KEY,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
       max_tokens: 1500,
@@ -276,13 +269,10 @@ const TextArea = ({ rows = 4, style, ...props }) => (
 function VoiceTextArea({ rows = 4, value, onChange, placeholder, style }) {
   const [rec, setRec] = useState("idle");
   const recRef = useRef(null);
+  const accRef = useRef(""); // acumula texto entre pausas automáticas do iOS
+  const activeRef = useRef(false); // controla se o usuário ainda quer gravar
 
-  const toggle = () => {
-    if (rec === "recording") {
-      recRef.current?.stop();
-      setRec("idle");
-      return;
-    }
+  const startRec = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
     const r = new SR();
@@ -292,13 +282,43 @@ function VoiceTextArea({ rows = 4, value, onChange, placeholder, style }) {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) t += e.results[i][0].transcript + " ";
       }
-      if (t) onChange({ target: { value: (value || "") + t } });
+      if (t) {
+        accRef.current += t;
+        onChange({ target: { value: (value || "") + accRef.current } });
+      }
     };
-    r.onend = () => setRec("idle");
-    r.onerror = () => setRec("idle");
+    r.onend = () => {
+      // iOS para automaticamente — se o usuário não clicou em parar, reinicia
+      if (activeRef.current) {
+        try { r.start(); } catch {}
+      } else {
+        setRec("idle");
+      }
+    };
+    r.onerror = (e) => {
+      if (e.error === "no-speech" && activeRef.current) {
+        try { r.start(); } catch {}
+      } else {
+        activeRef.current = false;
+        setRec("idle");
+      }
+    };
     r.start();
     recRef.current = r;
+  };
+
+  const toggle = () => {
+    if (rec === "recording") {
+      activeRef.current = false;
+      recRef.current?.stop();
+      accRef.current = "";
+      setRec("idle");
+      return;
+    }
+    accRef.current = "";
+    activeRef.current = true;
     setRec("recording");
+    startRec();
   };
 
   return (
