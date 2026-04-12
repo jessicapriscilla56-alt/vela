@@ -76,127 +76,169 @@ function gerarTarefas(semana, prioridade, desafio) {
   return tasks;
 }
 
-// ── FUNÇÕES DE GERAÇÃO COM CONTEXTO REAL ──
+// ── API DO CLAUDE ──
+const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_KEY;
 
-function gerarFeedback(desafio, sev, cargo, tempo, tipoComp, historico) {
-  const isJunior = tempo === "novo" || cargo.toLowerCase().includes("júnior") || cargo.toLowerCase().includes("junior") || cargo.toLowerCase().includes("analista");
-  const isSenior = tempo === "senior" || cargo.toLowerCase().includes("sênior") || cargo.toLowerCase().includes("senior") || cargo.toLowerCase().includes("especialista") || cargo.toLowerCase().includes("coordenador");
-  const isPrimeiraVez = historico === "primeira";
-  const isRecorrente = historico === "recorrente";
-
-  const aberturas = {
-    dev: {
-      junior: `"Quero conversar sobre algo que percebi e que vai te ajudar muito a crescer aqui. Pode ser que você ainda não tenha clareza sobre isso, e tudo bem — é exatamente para isso que estou aqui."`,
-      senior: `"Quero conversar sobre algo que percebi. Dado o seu nível de maturidade, acredito que você vai entender o que preciso trazer — e que vai usar isso para crescer ainda mais."`,
-      padrao: `"Quero conversar sobre algo que percebi e que vai te ajudar a crescer ainda mais aqui."`,
+async function chamarClaude(prompt) {
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_KEY,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
     },
-    at: {
-      junior: `"Preciso te dar um retorno importante. Você está crescendo aqui, e exatamente por isso preciso ser honesta sobre algo que está atrapalhando esse crescimento."`,
-      senior: `"Preciso te dar um retorno importante. Dada a sua experiência, sei que você consegue ouvir isso com abertura — e que tem tudo para virar esse jogo."`,
-      padrao: `"Preciso te dar um retorno importante. Quero que seja uma conversa construtiva — não de julgamento."`,
-    },
-    crit: {
-      junior: `"Vou ser direto porque me importo com o seu desenvolvimento. Chegamos a um ponto em que, se isso não mudar, vai comprometer a sua trajetória aqui."`,
-      senior: `"Vou ser direto porque me importo com você e com o time. Para alguém com a sua experiência, o que estou vendo não faz sentido — e preciso entender o que está acontecendo de verdade."`,
-      padrao: `"Vou ser direto porque me importo com você e com o time. Chegamos a um ponto que exige uma conversa franca."`,
-    },
-    dem: {
-      junior: `"Esta é uma conversa muito séria. Quero ser transparente: estamos em um momento crítico, e o que acontecer nas próximas semanas vai determinar o seu futuro aqui."`,
-      senior: `"Esta é uma conversa difícil, mas necessária. Você tem experiência suficiente para entender a gravidade — e para decidir se quer virar esse jogo."`,
-      padrao: `"Esta é uma conversa difícil, mas necessária. Quero ser transparente sobre onde estamos e o que precisa mudar."`,
-    },
-  };
-
-  const nivel = isJunior ? "junior" : isSenior ? "senior" : "padrao";
-  const abertura = aberturas[sev][nivel];
-
-  const contextoHistorico = isPrimeiraVez
-    ? `\nEsta é a primeira vez que você traz esse tema — o tom deve ser de abertura e curiosidade, não de cobrança. A pessoa pode genuinamente não ter percebido o impacto.`
-    : isRecorrente
-    ? `\nEste comportamento é recorrente. Isso muda a abordagem: você já teve conversas anteriores, então esta precisa ser mais diretiva. Chegue com os fatos documentados, seja claro sobre o que muda agora e qual é o prazo.`
-    : "";
-
-  const focoTipo = {
-    entrega: `Foco em entrega: conecte o comportamento ao impacto nos resultados do time e do cliente. Seja específico sobre o que "entregar bem" significa nesse contexto — muitas vezes o problema é falta de clareza de expectativa, não falta de vontade.`,
-    relacionamento: `Foco em relacionamento: comportamentos de relacionamento são os mais difíceis de dar feedback — porque a pessoa raramente vê como os outros a percebem. Use registros concretos: situações específicas, reações observáveis de colegas. Crie o espelho antes de cobrar a mudança.`,
-    autonomia: `Foco em autonomia: pergunte antes de afirmar. A falta de autonomia pode vir de insegurança (precisa de estímulo), de ambiente anterior controlador (precisa de permissão explícita) ou de preguiça intelectual (precisa de cobrança). Entender qual é define a abordagem.`,
-    comunicacao: `Foco em comunicação: seja extremamente específico — "sua comunicação precisa melhorar" não ajuda ninguém. Traga o exemplo exato: o e-mail, a reunião, a frase. Mostre o impacto percebido e o que seria diferente.`,
-    padrao: `Seja específico sobre o comportamento observado — não sobre quem a pessoa é, mas sobre o que ela fez ou deixou de fazer.`,
-  }[tipoComp] || `Seja específico sobre o comportamento observado — não sobre quem a pessoa é, mas sobre o que ela fez ou deixou de fazer.`;
-
-  return `PERFIL DA CONVERSA\n${cargo ? `Liderado: ${cargo}` : ""}${tempo === "novo" ? " · Menos de 3 meses" : tempo === "medio" ? " · 3 a 12 meses" : " · Mais de 1 ano"} · Nível: ${isJunior ? "Júnior/Iniciante" : isSenior ? "Sênior/Especialista" : "Pleno"}${contextoHistorico}\n\nANTES DA CONVERSA\nPrepare exemplos concretos — situações específicas, não impressões. Reserve 45-60min sem interrupção. ${isJunior ? "Com perfil júnior: seja mais didático, explique o porquê de cada expectativa. Muitas vezes o problema é falta de referência, não falta de vontade." : isSenior ? "Com perfil sênior: vá direto ao ponto. Profissionais experientes valorizam objetividade — rodeios soam como falta de coragem." : "Entre com curiosidade, não com julgamento."}\n\nABERTURA SUGERIDA\n${abertura}\n\nNÚCLEO — Framework Fato → Impacto → Futuro\n${focoTipo}\n\n"Observei que [FATO ESPECÍFICO]. Isso gerou [IMPACTO concreto no time/cliente/resultado]. O que preciso ver diferente é [COMPORTAMENTO ESPERADO com clareza]."\n\nSituação descrita: "${desafio.substring(0, 120)}${desafio.length > 120 ? "..." : ""}"\n→ Encontre o fato concreto (data, situação, comportamento observável)\n→ Descreva o impacto real — no cliente, no time ou na operação\n→ Defina exatamente o que espera ver diferente\n\nFato não tem defesa. Julgamento tem.\n\nESCUTA ATIVA\n${isJunior
-    ? `— "O que você entendeu que era esperado de você nessa situação?"\n— "O que te faltou para conseguir fazer diferente?"\n— "O que você precisaria de mim para chegar lá?"`
-    : isSenior
-    ? `— "Como você avalia o que aconteceu?"\n— "O que você faria diferente sabendo do impacto que gerou?"\n— "O que está te impedindo de operar no nível que você é capaz?"`
-    : `— "O que você acha que está causando isso?"\n— "O que você precisa de mim para mudar essa situação?"\n— "Tem algo acontecendo que eu não estou vendo?"`}\n\nQuando houver resistência: "Entendo o que você está trazendo. E dentro de tudo isso, o que você faria diferente daqui pra frente?"\n\nACORDO E PRÓXIMOS PASSOS\n${isRecorrente
-    ? `Esta conversa precisa terminar com um acordo claro e documentado — não genérico. "A partir de agora, o que muda é [X específico]. Vou acompanhar [Y indicador] por [Z semanas]. Se não mudar, precisaremos tomar uma decisão diferente. Você concorda?"`
-    : `"O que vamos fazer diferente a partir de agora é ___. Revisamos em ___ semanas. Você concorda?" Documente imediatamente após a conversa.`}\n\nSINAIS DE ALERTA\n${sev === "dem"
-    ? `— Esta conversa precisa ter uma data-limite clara. Sem mudança no prazo combinado → decisão formal\n— Se a pessoa se comprometer mas não mudar → o problema não é de compreensão, é de escolha`
-    : `— Sem mudança em 2 semanas → nova conversa mais diretiva\n— Comportamento enraizado → múltiplas conversas com evidências crescentes\n— Mudança positiva → reconheça publicamente`}`;
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1500,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error?.message || "Erro na API");
+  return data.content[0].text;
 }
 
-function gerarNarrativa(dados, aud, obj, tone, tamanhoTime, momentoEmpresa) {
+const SISTEMA = `Você é o Vela, um copiloto de liderança para líderes de CS (Customer Success) e CX (Customer Experience) em startups brasileiras. Você foi criado com base no livro "Liderança Customer Centric" e na metodologia da autora.
+
+Princípios que guiam todas as suas respostas:
+- "Fato não tem defesa. Julgamento tem." — sempre baseie análises em comportamentos e dados concretos, nunca em impressões
+- "Autonomia sem abandono." — estimule a autonomia sem abandonar o liderado
+- "Progresso primeiro. Ordem vem depois." — priorize ação antes da perfeição
+- "Liderança intencional é agir hoje com base no que você quer que exista amanhã."
+- "O que você construiu não é uma operação. É gente."
+
+Seu estilo:
+- Direto, sem rodeios, sem introduções genéricas
+- Respostas práticas e acionáveis — o líder precisa saber o que fazer
+- Linguagem profissional mas humana, em português brasileiro
+- Estruture as respostas com seções claras usando ✦ como marcador
+- Máximo de 500 palavras por resposta`;
+
+async function gerarFeedback(desafio, sev, cargo, tempo, tipoComp, historico) {
+  const sevMap = { dev: "desenvolvimento (tom: curioso, encorajador)", at: "atenção (tom: direto, construtivo)", crit: "crítico (tom: firme, claro)", dem: "pré-demissão (tom: transparente, sério)" };
+  const tempoMap = { novo: "menos de 3 meses na equipe", medio: "3 a 12 meses na equipe", senior: "mais de 1 ano na equipe" };
+  const compMap = { entrega: "entrega e resultado", relacionamento: "relacionamento interpessoal", autonomia: "autonomia e iniciativa", comunicacao: "comunicação", padrao: "comportamento geral" };
+
+  const prompt = `${SISTEMA}
+
+MÓDULO: Estruturação de Feedback
+
+CONTEXTO DO LIDERADO:
+- Cargo: ${cargo || "não informado"}
+- Tempo na equipe: ${tempoMap[tempo]}
+- Tipo de comportamento a abordar: ${compMap[tipoComp] || compMap.padrao}
+- Histórico: ${historico === "primeira" ? "primeira vez que esse comportamento aparece" : "comportamento recorrente — já houve conversas anteriores"}
+- Criticidade: ${sevMap[sev]}
+
+SITUAÇÃO DESCRITA PELO LÍDER:
+"${desafio}"
+
+Com base no framework Fato → Impacto → Futuro do livro Liderança Customer Centric, estruture uma preparação completa para essa conversa de feedback. Inclua:
+1. Como preparar a conversa (o que reunir antes)
+2. Abertura sugerida (frase de abertura adaptada ao perfil e criticidade)
+3. Núcleo do feedback (aplicando Fato → Impacto → Futuro à situação específica descrita)
+4. Perguntas de escuta ativa adaptadas ao perfil
+5. Como fechar com acordo claro
+
+Lembre: fato não tem defesa. Se o líder ainda está no campo da impressão, oriente-o a encontrar o fato concreto.`;
+
+  return await chamarClaude(prompt);
+}
+
+async function gerarNarrativa(dados, aud, obj, tone, tamanhoTime, momentoEmpresa) {
   const { metricas, contextoSemana, rawMetricas } = dados;
   const audMap = { board: "Board e C-Level", ceo: "CEO e Founder", vp: "VP de Produto", inv: "Investidores" };
-  const nps = metricas?.nps ?? 42;
-  const churn = metricas?.churn ?? 3.2;
-  const mrr = metricas?.mrr ?? 24500;
-  const csat = metricas?.csat ?? 4.1;
+  const objMap = { res: "apresentar o resultado do período", apr: "justificar um investimento em CS/CX", alert: "comunicar um risco que exige ação", exp: "apresentar oportunidade de expansão de receita" };
+  const toneMap = { ot: "otimista — destacando momentum e oportunidades", neu: "neutro — apresentando o quadro real com equilíbrio", urg: "urgente — comunicando risco e necessidade de decisão imediata" };
 
-  const introMap = {
-    ot: { board: "Os indicadores do período confirmam que a operação de CS/CX está entregando crescimento sustentável", ceo: "Os dados mostram que a estratégia de retenção está gerando resultado concreto", vp: "As métricas do período indicam que a experiência do cliente está se traduzindo em valor de produto", inv: "Os indicadores de retenção e expansão demonstram tração consistente no modelo de receita recorrente" },
-    neu: { board: "Os indicadores do período apresentam um quadro misto que requer atenção e decisão estratégica", ceo: "Os dados revelam oportunidades claras de melhoria que, se endereçadas, têm impacto direto na receita", vp: "As métricas de experiência mostram lacunas específicas que afetam retenção e crescimento", inv: "Os indicadores apontam para um momento de ajuste estratégico antes de escalar" },
-    urg: { board: "Os sinais da operação indicam uma janela crítica: sem ação nas próximas semanas, o impacto financeiro será mensurável", ceo: "Os dados revelam um risco real de receita que exige decisão imediata — não monitoramento", vp: "As métricas de experiência estão sinalizando problemas que, se não tratados agora, se tornam estruturais", inv: "Os indicadores exigem atenção urgente: o custo de não agir agora é maior que o custo de agir" },
-  };
+  const prompt = `${SISTEMA}
 
-  const timeSizeNote = tamanhoTime === "pequeno"
-    ? `Time de CS/CX enxuto — cada pessoa tem impacto desproporcional. As métricas refletem decisões individuais tanto quanto processos.`
-    : tamanhoTime === "medio"
-    ? `Com um time de tamanho médio, os indicadores já refletem padrões de processo — não só performance individual.`
-    : `Operação de maior escala — os indicadores refletem a maturidade dos processos e da cultura de CS/CX construída.`;
+MÓDULO: Narrativa para Diretoria
 
-  const momentoNote = momentoEmpresa === "early"
-    ? `Empresa em estágio inicial: a audiência sabe que os números ainda estão sendo construídos — o que importa é a direção e a velocidade de aprendizado.`
-    : momentoEmpresa === "crescendo"
-    ? `Empresa em crescimento: a audiência vai comparar os indicadores com o ritmo de expansão — mostre que retenção e crescimento estão andando juntos.`
-    : `Empresa em escala: a audiência vai querer ver eficiência — menos custo por cliente retido, mais expansão por conta ativa.`;
+AUDIÊNCIA: ${audMap[aud]}
+OBJETIVO: ${objMap[obj]}
+TOM: ${toneMap[tone]}
+TAMANHO DO TIME: ${tamanhoTime === "pequeno" ? "até 5 pessoas" : tamanhoTime === "medio" ? "6 a 15 pessoas" : "mais de 15 pessoas"}
+MOMENTO DA EMPRESA: ${momentoEmpresa === "early" ? "early stage" : momentoEmpresa === "crescendo" ? "crescimento" : "escala"}
 
-  const objMap = {
-    res: `apresentar o resultado do período`,
-    apr: `justificar um investimento em CS/CX`,
-    alert: `comunicar um risco que exige ação`,
-    exp: `apresentar uma oportunidade de expansão de receita`,
-  };
+DADOS E CONTEXTO:
+${rawMetricas || ""}
+${contextoSemana ? `Contexto da semana: ${contextoSemana}` : ""}
+NPS: ${metricas?.nps ?? "não informado"} | Churn: ${metricas?.churn ?? "não informado"}% | CSAT: ${metricas?.csat ?? "não informado"} | MRR Expansão: R$${metricas?.mrr ?? "não informado"}
 
-  return `✦ CONTEXTO EXECUTIVO — Para ${audMap[aud]}\n${introMap[tone][aud]}, com impacto direto nos pilares de retenção e crescimento de receita recorrente.\n\n✦ O QUE OS NÚMEROS DIZEM\nNPS ${nps >= 50 ? `em ${nps} — zona de promotores, com potencial real de expansão via indicação` : nps >= 20 ? `em ${nps} — zona neutra, o que significa clientes que ficam mas não crescem` : `em ${nps} — zona de risco, sinal de que a experiência não está sustentando a relação`}. Churn de ${churn}% ${churn <= 2 ? "— abaixo da média de mercado, operação saudável" : churn <= 5 ? "— dentro da zona de atenção, exige monitoramento ativo" : "— acima do tolerável, com impacto direto no MRR líquido"}. CSAT ${csat >= 4.5 ? `${csat}/5 — excelência na interação` : csat >= 3.5 ? `${csat}/5 — bom, mas com margem de melhoria identificada` : `${csat}/5 — abaixo do esperado, impactando retenção`}.\n\n✦ TRADUÇÃO PARA ${audMap[aud].toUpperCase()}\nPara ${objMap[obj]}: ${contextualNarrativa(aud, obj, tone, nps, churn, mrr, contextoSemana)}\n\n✦ CONTEXTO DA OPERAÇÃO\n${timeSizeNote} ${momentoNote}\n\n${contextoSemana ? `Situação atual: ${contextoSemana.substring(0, 150)}${contextoSemana.length > 150 ? "..." : ""}` : rawMetricas ? `Dados base: ${rawMetricas.substring(0, 150)}` : ""}\n\n✦ PRÓXIMO PASSO RECOMENDADO\n${obj === "apr" ? `Aprovação necessária: definir as 3 alavancas prioritárias de retenção e expansão para o próximo trimestre, com orçamento e ownership claro. ROI estimado: cada 1% de redução no churn equivale a R$${Math.round(mrr * 0.4).toLocaleString("pt-BR")} de receita preservada.` : obj === "alert" ? `Ação urgente: alinhar plano de resposta nas próximas 72 horas. Sem intervenção, o impacto projetado é de R$${Math.round(mrr * churn / 100 * 3).toLocaleString("pt-BR")} em risco no próximo trimestre.` : obj === "exp" ? `Oportunidade de expansão: os clientes com NPS acima de 8 representam a base mais qualificada para expansão de receita. Com abordagem estruturada, potencial de ${Math.round(mrr * 0.15).toLocaleString("pt-BR")} em MRR incremental.` : `Proposta: alinhar as 3 alavancas prioritárias em sessão de 90min com as lideranças nas próximas 2 semanas.`}`;
+Construa uma narrativa executiva que traduza esses dados técnicos em linguagem de negócio para ${audMap[aud]}. O objetivo é ${objMap[obj]}. Mostre o impacto no negócio, não só os números. Inclua um próximo passo recomendado claro.`;
+
+  return await chamarClaude(prompt);
 }
 
-function contextualNarrativa(aud, obj, tone, nps, churn, mrr, ctx) {
-  if (obj === "alert") return `O sinal está claro e o custo de não agir agora é maior que o custo de agir. ${ctx ? `A situação descrita — "${ctx.substring(0, 80)}..." — precisa de resposta estruturada, não de monitoramento.` : "Cada semana sem ação aumenta o risco de churn em cascata."}`;
-  if (obj === "apr") return `O investimento em CS/CX tem ROI mensurável: reduzir churn em 1% equivale a preservar receita recorrente, enquanto expandir base ativa é 5x mais barato que adquirir. ${nps < 30 ? "Com NPS na zona de risco, o investimento agora evita custo maior de recuperação." : "Com a base atual, o momento é de acelerar — não de manter."}`;
-  if (obj === "exp") return `Os clientes com maior NPS e menor churn são a base natural para expansão de receita. A oportunidade não está em prospecção — está dentro da base atual, esperando a conversa certa no momento certo.`;
-  return `${nps >= 40 && churn <= 4 ? "A operação está performando dentro do esperado para o estágio da empresa, com fundamentos sólidos para o próximo ciclo de crescimento." : "Os indicadores revelam oportunidades específicas que, se tratadas, têm impacto direto na receita e na sustentabilidade do crescimento."}`;
+async function gerarPriorizacao(dados, tamanhoTime, momentoEmpresa, tipoSemana) {
+  const { contextoSemana, prioridade, desafioLideranca } = dados;
+  const semanaMap = { estrategico: "calma/estratégica", normal: "normal", atarefado: "muito cheia/atarefada", crise: "em crise" };
+
+  const prompt = `${SISTEMA}
+
+MÓDULO: Próximos Movimentos — Priorização Semanal
+
+CONTEXTO DO LÍDER:
+- Tipo de semana: ${semanaMap[tipoSemana] || "normal"}
+- Tamanho do time: ${tamanhoTime === "pequeno" ? "até 5 pessoas" : tamanhoTime === "medio" ? "6 a 15 pessoas" : "mais de 15 pessoas"}
+- Momento da empresa: ${momentoEmpresa === "early" ? "early stage" : momentoEmpresa === "crescendo" ? "crescimento" : "escala"}
+- Prioridade declarada: ${prioridade || "não informada"}
+- Desafio de liderança atual: ${desafioLideranca || "não informado"}
+- Contexto da semana: ${contextoSemana || "não informado"}
+
+Com base na Matriz de Eisenhower aplicada à liderança de CS/CX, estruture os 3 movimentos mais importantes dessa semana para esse líder. Seja específico ao contexto descrito — não genérico. Inclua também o que delegar, o que eliminar e uma pergunta estratégica que o líder deveria se fazer essa semana.`;
+
+  return await chamarClaude(prompt);
 }
 
-function gerarPriorizacao(dados, tamanhoTime, momentoEmpresa, tipoSemana) {
-  const { contextoSemana, prioridade } = dados;
-  const isAtarefado = tipoSemana === "atarefado";
-  const isCrise = tipoSemana === "crise";
-  const isEstrategico = tipoSemana === "estrategico";
+async function gerarAnaliseIndicador(indicador, foco) {
+  const focoMap = { churn: "Churn (taxa de cancelamento)", nps: "NPS (Net Promoter Score)", csat: "CSAT (satisfação por interação)", expansao: "Expansão de receita (MRR expansion)", onboarding: "Onboarding (ativação de clientes)", retencao: "Retenção (renovações e permanência)" };
 
-  const intro = isCrise
-    ? `Semana de crise exige clareza acima de tudo. O risco é reagir a tudo e avançar em nada. Antes de qualquer ação, respire: o que aqui é urgente de verdade — e o que está parecendo urgente porque todo mundo está gritando ao mesmo tempo?`
-    : isAtarefado
-    ? `Semana cheia é o momento em que a Matriz de Eisenhower mais importa — e mais é ignorada. O urgente vai gritar. O importante vai esperar em silêncio. Seu papel como líder é não deixar o silêncio vencer.`
-    : `Semana mais calma é oportunidade rara. Não desperdice reagindo a pequenos ruídos. É o momento certo para o que é importante e não urgente — o que define o futuro, não só apaga o presente.`;
+  const prompt = `${SISTEMA}
 
-  const timeNote = tamanhoTime === "pequeno"
-    ? `\nTime pequeno: sua atenção é escassa e cada hora mal alocada tem custo desproporcional. Delegar bem é sobrevivência, não gestão.`
-    : tamanhoTime === "grande"
-    ? `\nTime grande: seu papel é cada vez menos executar e cada vez mais garantir que as pessoas certas têm clareza, recursos e autonomia para executar sem você.`
-    : "";
+MÓDULO: Cockpit — Análise de Indicador
 
-  return `${intro}${timeNote}\n\n✦ SEUS 3 MOVIMENTOS DESSA SEMANA\n\n1. ${prioridade ? `"${prioridade.substring(0, 70)}" — você mesmo disse que isso é o que mais importa. Bloqueie tempo hoje, antes de qualquer reunião. Se isso não acontecer hoje, quando vai acontecer?` : "Antes de qualquer coisa: qual é a única coisa que, se resolvida essa semana, tornaria todo o resto mais fácil ou desnecessário? Bloqueie tempo para isso primeiro."}\n\n2. ${isCrise ? `Em crise: comunicação proativa é a diferença entre liderar a narrativa e ser surpreendido. Quem precisa saber o que está acontecendo — antes de perguntar? Envie agora.` : `Comunicação proativa. ${contextoSemana ? `"${contextoSemana.substring(0, 60)}..." — quem precisa de um update sobre isso antes de perguntar?` : "Quem no seu entorno está tomando decisão com informação incompleta porque você não comunicou ainda?"} Transparência não gera caos. Gera comprometimento.`}\n\n3. ${isEstrategico ? `Semana estratégica: use esse espaço para o que não tem urgência mas define o futuro — desenvolvimento de pessoas, revisão de processos, planejamento de 90 dias. O que você vem adiando porque "não tem tempo"?` : `60 minutos sem agenda. Sem Slack, sem reunião, sem e-mail. É no quadrante do importante não urgente que mora a liderança intencional. Coloque no calendário agora — como reunião com você mesmo.`}\n\n✦ O QUE DELEGAR AGORA\n${tamanhoTime === "pequeno" ? `Time pequeno não significa fazer tudo você — significa escolher o que só você pode fazer e delegar o resto com critério claro.` : `Mapeie o que pode ser feito com 80% da qualidade por alguém do time.`} Ao delegar: responsável + prazo + critério de sucesso — em uma mensagem. Sem esses três, não é delegação, é terceirização de problema.\n\n✦ O QUE ELIMINAR SEM CULPA\n${isCrise ? `Em crise: elimine tudo que não tem relação direta com estabilizar a situação. Reuniões de rotina? Reagenda. Relatórios não urgentes? Pausa. O que pode esperar uma semana, espera.` : `Reunião sem pauta ou decisão clara? Cancela. Relatório que ninguém lê? Para. Processo que existe porque "sempre foi assim"? Questiona. Você tem permissão.`}\n\n✦ PERGUNTA ESTRATÉGICA\n${isCrise ? `"O que dessa crise está revelando sobre um processo ou estrutura que precisa mudar — e que eu posso resolver agora enquanto estou com isso em mente?"` : `"Se eu saísse amanhã, o que na minha operação pararia — e o que continuaria funcionando?" A segunda lista é o que você já construiu. A primeira é o trabalho que ainda falta."`}`;
+INDICADOR: ${focoMap[foco] || foco}
+
+SITUAÇÃO DESCRITA PELO LÍDER:
+"${indicador}"
+
+Analise essa situação do ponto de vista de liderança de CS/CX. Inclua:
+1. Diagnóstico — o que o indicador está revelando de verdade (vá além do óbvio)
+2. Causas prováveis — as 3 mais comuns para esse cenário específico
+3. Onde focar o tempo agora — o que o líder deveria fazer nos próximos 7 dias
+4. Micro-processo para essa semana — uma ação concreta e específica
+5. Pergunta estratégica — uma pergunta que o líder deveria se fazer
+
+Seja específico ao que foi descrito. Não dê respostas genéricas sobre o indicador — responda ao contexto real.`;
+
+  return await chamarClaude(prompt);
+}
+
+async function gerarAnaliseCrise(problema, gravidade, quantos, jaFez) {
+  const gravMap = { insatisfeito: "cliente insatisfeito", travado: "cliente travado/impedido de operar", churn: "risco real de churn", confirmado: "churn confirmado" };
+  const quantosMap = { um: "1 cliente afetado", varios: "múltiplos clientes afetados", sistemico: "problema sistêmico" };
+
+  const prompt = `${SISTEMA}
+
+MÓDULO: Gestão de Crise
+
+SITUAÇÃO:
+- O que aconteceu: "${problema}"
+- Tipo: ${gravMap[gravidade] || gravidade}
+- Escala: ${quantosMap[quantos] || quantos}
+- O que já foi feito: ${jaFez || "nada ainda"}
+
+Com base nas 5 dimensões de gestão de crise do livro Liderança Customer Centric, estruture um diagnóstico e plano de resposta completo. Seja direto — o líder está sob pressão e precisa saber o que fazer agora. Inclua urgência, impacto real, se é pontual ou estrutural, ação imediata e causa raiz para depois que estabilizar.`;
+
+  return await chamarClaude(prompt);
+}
+
+// Mantém funções síncronas como fallback se API não estiver disponível
+function gerarFeedbackSync(desafio, sev, cargo, tempo, tipoComp, historico) {
+  return `PERFIL: ${cargo || "Liderado"} · ${tempo === "novo" ? "Menos de 3 meses" : tempo === "medio" ? "3 a 12 meses" : "Mais de 1 ano"}\n\nANTES DA CONVERSA\nPrepare exemplos concretos. Reserve 45-60min sem interrupção.\n\nNÚCLEO — Fato → Impacto → Futuro\n"Observei que [FATO]. Isso gerou [IMPACTO]. O que preciso ver diferente é [COMPORTAMENTO ESPERADO]."\n\nSituação: "${desafio.substring(0, 100)}..."\n\nFato não tem defesa. Julgamento tem.`;
 }
 
 // ── COMPONENTES ──
@@ -744,31 +786,19 @@ function CockpitPage({ dados }) {
 
   const focoAtual = FOCOS.find(f => f.value === foco);
 
-  const gerarAnalise = () => {
+  const gerarAnalise = async () => {
     if (!indicador.trim()) { alert("Descreva o indicador primeiro."); return; }
     setLoading(true);
-    setTimeout(() => {
-      const analises = {
-        churn: `DIAGNÓSTICO — CHURN\n\n✦ O QUE O NÚMERO ESTÁ DIZENDO\n${indicador.substring(0, 120)}...\nChurn elevado raramente é sobre o produto. Quase sempre é sobre o que aconteceu — ou não aconteceu — na jornada do cliente antes do cancelamento. O sinal chegou antes. Alguém precisava ter visto.\n\n✦ CAUSAS PROVÁVEIS A INVESTIGAR\n1. Falha no onboarding — o cliente nunca ativou de verdade\n2. Lacuna de valor percebido — usa o produto, mas não vê retorno\n3. Mudança interna no cliente — troca de gestor, corte de budget\n4. Concorrente com proposta mais clara\n5. Problema de relacionamento — ninguém estava próximo o suficiente\n\n✦ ONDE FOCAR SEU TEMPO AGORA\n— Mapeie os últimos churns: qual foi o último contato antes do cancelamento?\n— Identifique os clientes com perfil similar que ainda estão ativos: aborde antes\n— Crie uma régua de saúde: quais sinais aparecem 60-90 dias antes do churn?\n\n✦ MICRO-PROCESSO PARA ESSA SEMANA\nListe os 3 clientes com maior risco de churn. Agende contato direto — não automático. Descubra o que eles estão sentindo antes de perguntar sobre renovação.\n\n✦ PERGUNTA ESTRATÉGICA\n"Quando foi a última vez que um cliente nos contou o que estava sentindo — sem ser numa pesquisa?"`,
-
-        nps: `DIAGNÓSTICO — NPS\n\n✦ O QUE O NÚMERO ESTÁ DIZENDO\n${indicador.substring(0, 120)}...\nNPS é um sintoma, não uma causa. Um número baixo diz que há algo sistêmico. Um número alto diz que você está no caminho certo — mas não para.\n\n✦ CAUSAS PROVÁVEIS A INVESTIGAR\n1. Detratores — qual é o padrão de reclamação? Produto, atendimento ou expectativa não atendida?\n2. Neutros — são os mais perigosos: estão aqui hoje, podem ir amanhã\n3. Promotores — você está aproveitando isso? Indicações, cases, expansão?\n\n✦ ONDE FOCAR SEU TEMPO AGORA\n— Fale com os detratores. Não para defender, para entender\n— Mapeie o que os promotores têm em comum: perfil, uso, relacionamento\n— Crie uma ação específica para mover neutros para promotores\n\n✦ MICRO-PROCESSO PARA ESSA SEMANA\nEscolha 2 detratores e agende uma conversa de escuta — sem agenda de vendas. Pergunte: "O que precisaria mudar para você nos recomendar?"\n\n✦ PERGUNTA ESTRATÉGICA\n"Meu time sabe o que os promotores têm em comum — e está replicando isso ativamente?"`,
-
-        csat: `DIAGNÓSTICO — CSAT\n\n✦ O QUE O NÚMERO ESTÁ DIZENDO\n${indicador.substring(0, 120)}...\nCSAT mede o momento. É o termômetro da interação. Quando está baixo, algo específico no atendimento ou na entrega não está funcionando — e quase sempre tem um padrão.\n\n✦ CAUSAS PROVÁVEIS A INVESTIGAR\n1. Tempo de resposta acima do esperado\n2. Primeira resposta que não resolve — cliente precisa voltar\n3. Tom da comunicação — tecnicamente correto, humanamente frio\n4. Falta de autonomia do time para resolver na hora\n5. Expectativa não alinhada no início da jornada\n\n✦ ONDE FOCAR SEU TEMPO AGORA\n— Abra as interações com nota baixa: qual é o padrão?\n— Observe se o problema é de processo ou de habilidade\n— Use os registros como espelho com o time — não como punição\n\n✦ MICRO-PROCESSO PARA ESSA SEMANA\nEscolha 5 interações com nota baixa. Leve para o time e pergunte: "O que o cliente sentiu nesse momento?" Deixe o time ver o impacto antes de propor solução.\n\n✦ PERGUNTA ESTRATÉGICA\n"Meu time entende a diferença entre resolver o problema e cuidar do cliente?"`,
-
-        expansao: `DIAGNÓSTICO — EXPANSÃO DE RECEITA\n\n✦ O QUE O NÚMERO ESTÁ DIZENDO\n${indicador.substring(0, 120)}...\nExpansão baixa quase sempre significa que o cliente não está vendo valor suficiente para querer mais. Ou que ninguém está tendo a conversa certa na hora certa.\n\n✦ CAUSAS PROVÁVEIS A INVESTIGAR\n1. Cliente não ativou todos os recursos que já tem\n2. Nenhum momento estruturado para conversa de valor\n3. Time de CS não se sente confortável com conversa comercial\n4. Falta de visibilidade do ROI que o cliente já obteve\n5. Timing errado — expandir antes de consolidar gera churn\n\n✦ ONDE FOCAR SEU TEMPO AGORA\n— Identifique clientes com alto uso e alta satisfação: esses são os candidatos naturais à expansão\n— Construa o argumento de valor com dados do cliente — não do produto\n— Prepare o time para a conversa: não é venda, é evolução do sucesso\n\n✦ MICRO-PROCESSO PARA ESSA SEMANA\nMapeie os 5 clientes com maior potencial de expansão. Para cada um, monte uma visão de valor: o que eles alcançaram com você até aqui? Essa é a base da conversa.\n\n✦ PERGUNTA ESTRATÉGICA\n"Meu time sabe mostrar o valor que já entregou — antes de pedir para o cliente expandir?"`,
-
-        onboarding: `DIAGNÓSTICO — ONBOARDING\n\n✦ O QUE O NÚMERO ESTÁ DIZENDO\n${indicador.substring(0, 120)}...\nOnboarding fraco é o início do churn. O cliente que não ativa nos primeiros 30-60 dias raramente vira promotor. E a janela para mudar isso é curta.\n\n✦ CAUSAS PROVÁVEIS A INVESTIGAR\n1. Expectativa criada na venda não se reflete no produto real\n2. Processo longo demais antes do primeiro valor percebido\n3. Cliente não tem clareza do que precisa fazer para ter sucesso\n4. Falta de acompanhamento humano nos momentos críticos\n5. Time de CS não envolvido cedo o suficiente\n\n✦ ONDE FOCAR SEU TEMPO AGORA\n— Mapeie o "first value moment": quando o cliente percebe pela primeira vez que valeu a pena?\n— Reduza o tempo até esse momento — tudo antes é fricção\n— Identifique os clientes que nunca chegaram lá e entenda o porquê\n\n✦ MICRO-PROCESSO PARA ESSA SEMANA\nEscolha 3 clientes que cancelaram nos primeiros 90 dias. Reconstrua a jornada deles: quando a experiência começou a desandar?\n\n✦ PERGUNTA ESTRATÉGICA\n"Meu cliente sabe exatamente o que precisa fazer nos próximos 30 dias para ter sucesso com a gente?"`,
-
-        retencao: `DIAGNÓSTICO — RETENÇÃO\n\n✦ O QUE O NÚMERO ESTÁ DIZENDO\n${indicador.substring(0, 120)}...\nRetenção é o resultado de tudo que aconteceu antes da renovação. Se está baixa, o problema não está na conversa de renovação — está na jornada.\n\n✦ CAUSAS PROVÁVEIS A INVESTIGAR\n1. Valor percebido não acompanhou o preço pago\n2. Ausência de contato proativo — cliente se sentiu sozinho\n3. Mudança de interlocutor no cliente sem transição cuidadosa\n4. Problema não resolvido que ficou esquecido\n5. Concorrente abordou antes de você renovar\n\n✦ ONDE FOCAR SEU TEMPO AGORA\n— Mapeie a frequência de contato com contas próximas de renovar\n— Construa um business review antes da janela de renovação — não depois\n— Identifique o interlocutor real: quem decide a renovação?\n\n✦ MICRO-PROCESSO PARA ESSA SEMANA\nListe todas as renovações dos próximos 60 dias. Para cada conta: qual foi o último contato proativo? Se foi há mais de 30 dias, aja agora.\n\n✦ PERGUNTA ESTRATÉGICA\n"Meu cliente sabe o valor que obteve conosco nesse período — ou só vai lembrar quando eu mostrar na reunião de renovação?"`,
-      };
-
-      const texto = analises[foco] || analises.churn;
+    try {
+      const texto = await gerarAnaliseIndicador(indicador, foco);
       setResult(texto);
       const novoHistorico = [{ foco: focoAtual?.label, texto: indicador.substring(0, 50), resultado: texto }, ...historico].slice(0, 5);
       setHistorico(novoHistorico);
       LS.set("cockpit_historico", novoHistorico);
-      setLoading(false);
-    }, 1100);
+    } catch (e) {
+      setResult("Erro ao gerar análise. Verifique sua conexão e tente novamente.");
+    }
+    setLoading(false);
   };
 
   return (
@@ -965,9 +995,13 @@ function MatrizPage({ dados }) {
             placeholder="O que está acontecendo? O que está pesando mais? Quais são as principais demandas?" />
         </div>
 
-        <BtnPrimary onClick={() => {
+        <BtnPrimary onClick={async () => {
           setLoading(true);
-          setTimeout(() => { setResult(gerarPriorizacao({ ...dados, contextoSemana: ctx }, tamanhoTime, momentoEmpresa, tipoSemana)); setLoading(false); }, 1000);
+          try {
+            const r = await gerarPriorizacao({ ...dados, contextoSemana: ctx }, tamanhoTime, momentoEmpresa, tipoSemana);
+            setResult(r);
+          } catch (e) { setResult("Erro ao gerar. Verifique sua conexão."); }
+          setLoading(false);
         }} loading={loading}>✦ Receber recomendação estratégica</BtnPrimary>
         <ResultBox text={result} modulo="matriz" />
       </Card>
@@ -1059,10 +1093,14 @@ function FeedbackPage({ dados }) {
           ]} />
         </div>
 
-        <BtnPrimary onClick={() => {
+        <BtnPrimary onClick={async () => {
           if (!desafio.trim()) { alert("Descreva a situação."); return; }
           setLoading(true);
-          setTimeout(() => { setResult(gerarFeedback(desafio, sev, cargo, tempo, tipoComp, historico)); setLoading(false); }, 1000);
+          try {
+            const r = await gerarFeedback(desafio, sev, cargo, tempo, tipoComp, historico);
+            setResult(r);
+          } catch (e) { setResult("Erro ao gerar. Verifique sua conexão."); }
+          setLoading(false);
         }} loading={loading}>✦ Estruturar feedback</BtnPrimary>
         <ResultBox text={result} modulo="feedback" />
       </Card>
@@ -1079,30 +1117,14 @@ function CrisePage({ dados }) {
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const gerarAnalise = () => {
+  const gerarAnalise = async () => {
     if (!problema.trim()) { alert("Descreva o problema primeiro."); return; }
     setLoading(true);
-
-    const gravMap = {
-      insatisfeito: { label: "Cliente insatisfeito", urgencia: "moderada", risco: "reputação e relacionamento" },
-      travado: { label: "Cliente travado / impedido de operar", urgencia: "MÁXIMA", risco: "operação do cliente comprometida" },
-      churn: { label: "Risco real de churn", urgencia: "alta", risco: "perda de receita recorrente" },
-      confirmado: { label: "Churn confirmado", urgencia: "pós-crise", risco: "recuperação e aprendizado" },
-    };
-    const quantosMap = { um: "1 cliente afetado", varios: "múltiplos clientes afetados", sistemico: "problema sistêmico — todos os clientes em risco" };
-    const g = gravMap[gravidade];
-
-    const isConfirmado = gravidade === "confirmado";
-    const isSistemico = quantos === "sistemico";
-
-    setTimeout(() => {
-      setResult(`DIAGNÓSTICO — Urgência ${g.urgencia.toUpperCase()}\n${quantosMap[quantos]} · ${g.label}\n\n✦ O QUE ACONTECEU\n"${problema.substring(0, 180)}${problema.length > 180 ? "..." : ""}"\n\nRisco principal: ${g.risco}. ${isSistemico ? "ATENÇÃO: problema sistêmico — outros clientes provavelmente estão sendo afetados sem ter reportado ainda." : ""}\n\n✦ IMPACTO REAL\n${gravidade === "insatisfeito" ? "O cliente ficou insatisfeito — isso afeta o relacionamento e aumenta o risco de churn futuro. Não é emergência operacional, mas exige resposta humana e ágil. O silêncio aqui é o maior inimigo." : gravidade === "travado" ? "O cliente está impedido de operar — isso é emergência. Cada hora conta. A resposta precisa ser imediata, com um ponto de contato claro e updates frequentes até resolver." : gravidade === "churn" ? "Há risco real de perder essa conta. Neste momento, não tente 'vender' a permanência — entenda o que está por trás. O churn quase nunca é sobre o último problema. É a gota d'água de algo que foi se acumulando." : "O churn foi confirmado. O momento agora é de entender o que aconteceu — não para recuperar essa conta, mas para evitar a próxima. E de sair bem: como o cliente se sente ao sair diz muito sobre a sua marca."}\n\n✦ PONTUAL OU ESTRUTURAL?\n${jaFez ? `O que você já fez: "${jaFez.substring(0, 100)}". ` : ""}${isSistemico ? "Com múltiplos clientes afetados, isso é estrutural. Resolver caso a caso não é suficiente — o processo que gerou isso precisa mudar." : "Antes de concluir que é pontual, pergunte: isso já aconteceu antes, mesmo que de forma diferente? Se sim, é estrutural disfarçado de caso isolado."}\n\n✦ AÇÃO IMEDIATA — PRÓXIMAS ${gravidade === "travado" ? "2 HORAS" : "24 HORAS"}\n${gravidade === "travado" || isSistemico
-        ? `1. Acione quem pode resolver tecnicamente AGORA\n2. Comunique o cliente com transparência: "Identificamos o problema, estamos trabalhando. Atualização em X horas."\n3. Defina um único ponto de contato — o cliente não pode ficar sem resposta\n4. Update a cada ${gravidade === "travado" ? "1-2 horas" : "4 horas"} até resolver`
-        : gravidade === "confirmado"
-        ? `1. Faça uma conversa de saída real — não protocolar. O que você pode aprender?\n2. Garanta que a saída seja boa: o ex-cliente pode ser um promotor ou um detrator\n3. Documente as causas raiz com a equipe\n4. Identifique clientes com perfil similar que podem estar no mesmo caminho`
-        : `1. Responda ao cliente com empatia e sem defensividade\n2. Assuma o problema — mesmo que não seja 100% seu\n3. Dê um prazo realista para resolução\n4. Cumpra o prazo ou comunique antes`}\n\n✦ CAUSA RAIZ — DEPOIS DE ESTABILIZAR\nO que precisa mudar para que isso não aconteça novamente? Envolva quem participou da situação — não como punição, como aprendizado. Quando as pessoas enxergam o impacto real no cliente, tomam decisões melhores da próxima vez.\n\n✦ PRINCÍPIO\n"Progresso primeiro. Ordem vem depois." Estabilize agora. Estruture depois. Mas não deixe a estrutura para nunca.`);
-      setLoading(false);
-    }, 900);
+    try {
+      const r = await gerarAnaliseCrise(problema, gravidade, quantos, jaFez);
+      setResult(r);
+    } catch (e) { setResult("Erro ao gerar. Verifique sua conexão."); }
+    setLoading(false);
   };
 
   return (
@@ -1186,10 +1208,14 @@ function NarrativaPage({ dados }) {
   const [loading, setLoading] = useState(false);
   useEffect(() => { if (dados?.rawMetricas) setEditDados(dados.rawMetricas); }, [dados]);
 
-  const gerar = () => {
+  const gerar = async () => {
     if (!editDados.trim()) { alert("Adicione seus dados primeiro."); return; }
     setLoading(true);
-    setTimeout(() => { setResult(gerarNarrativa({ ...dados, rawMetricas: editDados }, aud, obj, tone, tamanhoTime, momentoEmpresa)); setLoading(false); }, 1000);
+    try {
+      const r = await gerarNarrativa({ ...dados, rawMetricas: editDados }, aud, obj, tone, tamanhoTime, momentoEmpresa);
+      setResult(r);
+    } catch (e) { setResult("Erro ao gerar. Verifique sua conexão."); }
+    setLoading(false);
   };
 
   return (
