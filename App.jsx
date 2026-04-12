@@ -64,7 +64,13 @@ function parseMetrics(text) {
 function gerarTarefas(semana, prioridade, desafio) {
   const s = (semana || "").toLowerCase();
   const tasks = { do: [], sc: [], de: [], el: [] };
-  if (prioridade) tasks.do.push(prioridade.substring(0, 55));
+
+  // Só adiciona prioridade se for curta e parecer uma tarefa real
+  const prioLimpa = (prioridade || "").trim();
+  if (prioLimpa && prioLimpa.length < 80 && !prioLimpa.includes("meu nome") && !prioLimpa.includes("trabalho na") && !prioLimpa.includes("equipe de")) {
+    tasks.do.push(prioLimpa.substring(0, 55));
+  }
+
   if (s.includes("risco") || s.includes("churn") || s.includes("reno")) tasks.do.push("Contato direto com contas em risco");
   if (s.includes("qbr") || s.includes("reunião") || s.includes("board")) tasks.do.push("Preparar apresentação executiva");
   if (desafio) tasks.sc.push("Conversa de feedback com liderado");
@@ -957,15 +963,20 @@ function salvarNoHistorico(modulo, resumo, resultado) {
     resumo: resumo.substring(0, 80),
     resultado,
     data: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+    hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
   };
-  const atualizado = [novaEntrada, ...historico].slice(0, 30);
+  const atualizado = [novaEntrada, ...historico].slice(0, 50);
   LS.set("vela_historico", atualizado);
 }
 
 // ── HISTÓRICO PAGE ──
 function HistoricoPage({ onBack }) {
-  const [historico] = useState(() => LS.get("vela_historico", []));
+  const [historico, setHistorico] = useState([]);
   const [aberto, setAberto] = useState(null);
+
+  useEffect(() => {
+    setHistorico(LS.get("vela_historico", []));
+  }, []);
 
   const moduloConfig = {
     cockpit: { icon: "◆", color: V.amber, label: "Cockpit" },
