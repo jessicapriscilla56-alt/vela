@@ -634,7 +634,7 @@ function PrincipioDaSemana() {
 }
 
 // ── CHECKIN ──
-function CheckinFlow({ onComplete, isUpdate }) {
+function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
   const [modo, setModo] = useState(null);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -643,6 +643,8 @@ function CheckinFlow({ onComplete, isUpdate }) {
   const [transcript, setTranscript] = useState("");
   const [recState, setRecState] = useState("idle");
   const recognitionRef = useRef(null);
+  const [estiloCheckin, setEstiloCheckin] = useState(dadosExistentes?.estiloLideranca || "");
+  const [culturaCheckin, setCulturaCheckin] = useState(dadosExistentes?.culturaEmpresa || "");
 
   const QUESTIONS = isUpdate ? CHECKIN_UPDATE : CHECKIN_FULL;
   const q = QUESTIONS[step];
@@ -658,8 +660,8 @@ function CheckinFlow({ onComplete, isUpdate }) {
       prioridade: resps.prioridade || "",
       rawMetricas: resps.metricas || "",
       tarefasMatriz: gerarTarefas(resps.semana, resps.prioridade, resps.desafio),
-      estiloLideranca: resps.estilo || "",
-      culturaEmpresa: resps.cultura || "",
+      estiloLideranca: estiloCheckin || resps.estilo || "",
+      culturaEmpresa: culturaCheckin || resps.cultura || "",
     };
   };
 
@@ -721,20 +723,19 @@ function CheckinFlow({ onComplete, isUpdate }) {
         {isUpdate ? (
           <div style={{ padding: "12px 16px", background: V.tealDim, border: `1px solid ${V.teal}25`, borderRadius: 10, marginBottom: 4 }}>
             <div style={{ fontSize: 12, color: V.teal, fontWeight: 700, marginBottom: 4 }}>Atualização semanal</div>
-            <div style={{ color: V.text2, fontSize: 12, lineHeight: 1.7 }}>Feito para ser rápido — 4 perguntas para atualizar seus números e contexto da semana. Todos os módulos vão refletir o novo contexto.</div>
+            <div style={{ color: V.text2, fontSize: 12, lineHeight: 1.7 }}>Feito para ser rápido — 4 perguntas para atualizar seus números e contexto da semana.</div>
           </div>
         ) : (
           <div>
             <div style={{ padding: "12px 16px", background: V.amberGlow, border: `1px solid ${V.amber}20`, borderRadius: 10, marginBottom: 8 }}>
               <div style={{ fontSize: 12, color: V.amber, fontWeight: 700, marginBottom: 4 }}>Configuração inicial — feita uma vez</div>
-              <div style={{ color: V.text2, fontSize: 12, lineHeight: 1.7 }}>Vamos entender quem você é e como está sua operação. Com isso, todos os módulos ficam pré-preenchidos com seu contexto. Leva cerca de 3 minutos.</div>
+              <div style={{ color: V.text2, fontSize: 12, lineHeight: 1.7 }}>Vamos entender quem você é. Com isso, todos os módulos ficam personalizados para o seu contexto.</div>
             </div>
-            <div style={{ fontSize: 11, color: V.text2, textAlign: "center" }}>Depois use o <span style={{ color: V.teal }}>check-out semanal</span> para atualizar a cada semana</div>
           </div>
         )}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
         {[
           { m: "texto", icon: "◉", title: "Responder por texto", sub: `${QUESTIONS.length} perguntas. O Vela preenche tudo automaticamente.`, c: V.amber },
           { m: "audio", icon: "◈", title: "Falar por áudio", sub: "Fale livremente. O Vela interpreta e distribui nos módulos.", c: V.teal },
@@ -749,6 +750,42 @@ function CheckinFlow({ onComplete, isUpdate }) {
           </button>
         ))}
       </div>
+
+      {!isUpdate && (
+        <div style={{ borderTop: `1px solid ${V.border}`, paddingTop: 20 }}>
+          <div style={{ fontSize: 11, color: V.text2, textAlign: "center", marginBottom: 16, letterSpacing: "0.5px" }}>
+            — opcional, mas melhora muito as respostas —
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ color: V.amber, fontFamily: "monospace" }}>◎</span>
+              <Label>Meu estilo de liderança</Label>
+            </div>
+            <div style={{ fontSize: 11, color: V.text2, marginBottom: 8, lineHeight: 1.6 }}>Como você lidera, seus pontos fortes, desafios recorrentes. O Vela adapta todas as respostas ao seu estilo.</div>
+            <VoiceTextArea
+              value={estiloCheckin}
+              onChange={e => setEstiloCheckin(e.target.value)}
+              rows={3}
+              placeholder="Ex: Sou direta, prefiro dar autonomia antes de intervir. Ponto forte: estruturar processos. Dificuldade: conversas de confronto..."
+            />
+          </div>
+
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ color: V.indigo, fontFamily: "monospace" }}>◈</span>
+              <Label>Cultura da empresa</Label>
+            </div>
+            <div style={{ fontSize: 11, color: V.text2, marginBottom: 8, lineHeight: 1.6 }}>Cole o código de cultura, valores ou descreva como a empresa funciona. O Vela usa isso para contextualizar todas as análises.</div>
+            <VoiceTextArea
+              value={culturaCheckin}
+              onChange={e => setCulturaCheckin(e.target.value)}
+              rows={3}
+              placeholder="Ex: Empresa de alto crescimento, cultura de ownership, feedback direto, velocidade sobre perfeição..."
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -1736,7 +1773,7 @@ export default function App() {
             <button onClick={() => setOverlay(null)} style={{ background: "none", border: "none", color: V.text2, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>Fechar ×</button>
           </div>
           <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px" }}>
-            <CheckinFlow onComplete={handleComplete} isUpdate={overlay === "update"} />
+            <CheckinFlow onComplete={handleComplete} isUpdate={overlay === "update"} dadosExistentes={dados} />
             <div style={{ height: 24 }} />
           </div>
         </div>
