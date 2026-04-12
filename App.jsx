@@ -1232,7 +1232,21 @@ function NarrativaPage({ dados }) {
   const [editDados, setEditDados] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
-  useEffect(() => { if (dados?.rawMetricas) setEditDados(dados.rawMetricas); }, [dados]);
+  useEffect(() => {
+    // Usa só as métricas — não o contexto completo do check-in
+    if (dados?.metricas) {
+      const m = dados.metricas;
+      const metricasFormatadas = [
+        m.nps ? `NPS: ${m.nps}` : "",
+        m.churn ? `Churn: ${m.churn}%` : "",
+        m.csat ? `CSAT: ${m.csat}` : "",
+        m.mrr ? `MRR Expansão: R$${m.mrr}` : "",
+      ].filter(Boolean).join(" · ");
+      if (metricasFormatadas) setEditDados(metricasFormatadas);
+    } else if (dados?.rawMetricas) {
+      setEditDados(dados.rawMetricas);
+    }
+  }, [dados]);
 
   const gerar = async () => {
     if (!editDados.trim()) { alert("Adicione seus dados primeiro."); return; }
@@ -1384,10 +1398,10 @@ export default function App() {
 
       <div style={{ flex: 1, overflowY: "auto", padding: "18px 14px", WebkitOverflowScrolling: "touch" }}>
         {pageMap[page]}
-        <div style={{ height: 24 }} />
+        <div style={{ height: 40 }} />
       </div>
 
-      <div style={{ background: V.surface, borderTop: `1px solid ${V.border}`, display: "flex", flexShrink: 0 }}>
+      <div style={{ background: V.surface, borderTop: `1px solid ${V.border}`, display: "flex", flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         {NAV.map(n => (
           <button key={n.id} onClick={() => handleNav(n.id)}
             style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: "10px 2px", background: "none", border: "none", color: page === n.id ? V.amber : V.text3, cursor: "pointer", fontFamily: "monospace", borderTop: page === n.id ? `2px solid ${V.amber}` : "2px solid transparent", transition: "color 0.15s" }}>
