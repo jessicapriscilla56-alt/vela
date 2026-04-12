@@ -78,9 +78,15 @@ function gerarTarefas(semana, prioridade, desafio) {
 
 // ── API DO CLAUDE ──
 async function chamarClaude(prompt) {
-  const resp = await fetch("/api/claude", {
+  const key = import.meta.env.VITE_ANTHROPIC_KEY;
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
     body: JSON.stringify({
       model: "claude-3-5-haiku-20241022",
       max_tokens: 1500,
