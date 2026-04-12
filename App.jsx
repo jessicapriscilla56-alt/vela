@@ -1,14 +1,29 @@
 import { useState, useRef, useEffect } from "react";
 
-const V = {
-  bg: "#0C0E14", surface: "#13151E", surface2: "#1A1D29", surface3: "#212535",
-  border: "#2A2E40", border2: "#363B52",
-  amber: "#F0A500", amberDim: "rgba(240,165,0,0.10)", amberGlow: "rgba(240,165,0,0.05)",
-  teal: "#2DD4BF", tealDim: "rgba(45,212,191,0.10)",
-  rose: "#FB7185", roseDim: "rgba(251,113,133,0.10)",
-  indigo: "#818CF8", indigoDim: "rgba(129,140,248,0.10)",
-  text: "#F0F2F8", text2: "#6B7194", text3: "#363B52",
+const TEMAS = {
+  escuro: {
+    bg: "#0C0E14", surface: "#13151E", surface2: "#1A1D29", surface3: "#212535",
+    border: "#2A2E40", border2: "#363B52",
+    amber: "#F0A500", amberDim: "rgba(240,165,0,0.10)", amberGlow: "rgba(240,165,0,0.05)",
+    teal: "#2DD4BF", tealDim: "rgba(45,212,191,0.10)",
+    rose: "#FB7185", roseDim: "rgba(251,113,133,0.10)",
+    indigo: "#818CF8", indigoDim: "rgba(129,140,248,0.10)",
+    text: "#F0F2F8", text2: "#8890B0", text3: "#4A5070",
+    navInativo: "#8890B0",
+  },
+  claro: {
+    bg: "#F5F5F0", surface: "#FFFFFF", surface2: "#F0EFE8", surface3: "#E8E7DF",
+    border: "#E0DED5", border2: "#C8C6BC",
+    amber: "#D4920A", amberDim: "rgba(212,146,10,0.10)", amberGlow: "rgba(212,146,10,0.05)",
+    teal: "#0D9488", tealDim: "rgba(13,148,136,0.10)",
+    rose: "#E11D48", roseDim: "rgba(225,29,72,0.10)",
+    indigo: "#4F46E5", indigoDim: "rgba(79,70,229,0.10)",
+    text: "#1A1A2E", text2: "#5A5A7A", text3: "#9A9AB0",
+    navInativo: "#5A5A7A",
+  },
 };
+
+let V = TEMAS.escuro;
 
 // ── CONTEÚDO DO LIVRO ──
 const PRINCIPIOS = [
@@ -1707,6 +1722,16 @@ export default function App() {
   const [page, setPage] = useState(() => LS.get("page", "home"));
   const [dados, setDados] = useState(() => LS.get("dados", null));
   const [overlay, setOverlay] = useState(null);
+  const [tema, setTema] = useState(() => LS.get("tema", "escuro"));
+
+  // Atualiza V globalmente quando tema muda
+  V = TEMAS[tema] || TEMAS.escuro;
+
+  const toggleTema = () => {
+    const novoTema = tema === "escuro" ? "claro" : "escuro";
+    setTema(novoTema);
+    LS.set("tema", novoTema);
+  };
 
   const handleComplete = (d) => {
     setDados(d);
@@ -1743,6 +1768,13 @@ export default function App() {
       <div style={{ background: V.surface, borderBottom: `1px solid ${V.border}`, padding: "11px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         <div style={{ width: 28, height: 28, background: `linear-gradient(135deg, ${V.amber}, #D4920A)`, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontFamily: "monospace", color: "#0C0E14", fontWeight: 700 }}>◎</div>
         <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 16, letterSpacing: -0.3, flex: 1 }}>Vela</div>
+
+        {/* Toggle de tema */}
+        <button onClick={toggleTema}
+          style={{ background: V.surface2, border: `1px solid ${V.border}`, color: V.text2, borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", fontSize: 13, marginRight: 4 }}>
+          {tema === "escuro" ? "☀️" : "🌙"}
+        </button>
+
         {dados && (
           <button onClick={() => setOverlay("update")}
             style={{ background: V.tealDim, border: `1px solid ${V.teal}25`, color: V.teal, borderRadius: 8, padding: "5px 11px", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>
@@ -1756,10 +1788,10 @@ export default function App() {
         <div style={{ height: 40 }} />
       </div>
 
-      <div style={{ background: V.surface, borderTop: `1px solid ${V.border}`, display: "flex", flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <div style={{ background: V.surface, borderTop: `1px solid ${V.border}`, display: "flex", flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 8px)" }}>
         {NAV.map(n => (
           <button key={n.id} onClick={() => handleNav(n.id)}
-            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: "10px 2px", background: "none", border: "none", color: page === n.id ? V.amber : V.text3, cursor: "pointer", fontFamily: "monospace", borderTop: page === n.id ? `2px solid ${V.amber}` : "2px solid transparent", transition: "color 0.15s" }}>
+            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: "10px 2px", background: "none", border: "none", color: page === n.id ? V.amber : V.navInativo, cursor: "pointer", fontFamily: "monospace", borderTop: page === n.id ? `2px solid ${V.amber}` : "2px solid transparent", transition: "color 0.15s" }}>
             <span style={{ fontSize: 17, lineHeight: 1 }}>{n.icon}</span>
             <span style={{ fontSize: 9, fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{n.label}</span>
           </button>
