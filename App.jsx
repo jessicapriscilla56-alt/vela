@@ -367,12 +367,29 @@ const Pills = ({ options, value, onChange }) => (
   </div>
 );
 
-const ResultBox = ({ text, modulo = "" }) => {
+const ResultBox = ({ text, modulo = "", promptOriginal = "" }) => {
   const [copied, setCopied] = useState(false);
-  const [rating, setRating] = useState(null); // null | 'up' | 'down'
+  const [rating, setRating] = useState(null);
   const [feedback, setFeedback] = useState("");
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [followUp, setFollowUp] = useState("");
+  const [followUpResult, setFollowUpResult] = useState("");
+  const [followUpLoading, setFollowUpLoading] = useState(false);
+
+  const enviarFollowUp = async () => {
+    if (!followUp.trim()) return;
+    setFollowUpLoading(true);
+    try {
+      const prompt = `${SISTEMA}\n\nANÁLISE ANTERIOR:\n${text}\n\nPERGUNTA DE APROFUNDAMENTO:\n"${followUp}"\n\nResponda de forma direta e específica à pergunta, mantendo o contexto da análise anterior. Seja objetivo — máximo de 300 palavras.`;
+      const r = await chamarClaude(prompt);
+      setFollowUpResult(r);
+      setFollowUp("");
+    } catch (e) {
+      setFollowUpResult("Erro ao gerar. Tente novamente.");
+    }
+    setFollowUpLoading(false);
+  };
 
   if (!text) return null;
 
@@ -442,6 +459,34 @@ const ResultBox = ({ text, modulo = "" }) => {
               Enviar feedback
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ── CONTINUAR A CONVERSA ── */}
+      <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${V.border}` }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: V.text2, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>◈ Aprofundar ou tirar dúvida</div>
+        <div style={{ position: "relative" }}>
+          <textarea value={followUp} onChange={e => setFollowUp(e.target.value)} rows={2}
+            placeholder="Ex: Como abordo isso se o liderado reagir com defensividade? Pode detalhar mais o ponto 2?"
+            style={{ width: "100%", background: V.surface2, border: `1px solid ${V.border}`, borderRadius: 9, padding: "10px 42px 10px 12px", color: V.text, fontFamily: "inherit", fontSize: 13, resize: "none", outline: "none", lineHeight: 1.6, boxSizing: "border-box" }}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviarFollowUp(); } }} />
+          <button onClick={enviarFollowUp} disabled={followUpLoading || !followUp.trim()}
+            style={{ position: "absolute", right: 8, bottom: 8, width: 28, height: 28, borderRadius: 8, border: "none", background: followUp.trim() ? V.amber : V.surface3, color: followUp.trim() ? "#0C0E14" : V.text2, cursor: followUp.trim() ? "pointer" : "not-allowed", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {followUpLoading ? "⏳" : "↑"}
+          </button>
+        </div>
+        <div style={{ fontSize: 10, color: V.text3, marginTop: 4 }}>Enter para enviar · Shift+Enter para nova linha</div>
+      </div>
+
+      {/* Resultado do follow-up */}
+      {followUpResult && (
+        <div style={{ marginTop: 12, background: V.surface2, border: `1px solid ${V.border}`, borderLeft: `3px solid ${V.teal}`, borderRadius: 10, padding: 14 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: V.teal, letterSpacing: "2px", textTransform: "uppercase", marginBottom: 8 }}>◈ Continuação</div>
+          <div style={{ color: V.text, fontSize: 13, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{followUpResult}</div>
+          <button onClick={() => setFollowUpResult("")}
+            style={{ marginTop: 10, background: "none", border: "none", color: V.text2, cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}>
+            ✕ Fechar
+          </button>
         </div>
       )}
     </div>
@@ -772,6 +817,14 @@ function HomePage({ dados, onCheckin, onUpdate, onNav }) {
               <div style={{ fontSize: 11, color: V.text2 }}>Atualizar métricas e contexto</div>
             </div>
           </button>
+          <button onClick={() => onNav("historico")}
+            style={{ background: V.surface, border: `1px solid ${V.border}`, borderRadius: 12, padding: "13px 15px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: V.indigoDim, display: "flex", alignItems: "center", justifyContent: "center", color: V.indigo, fontFamily: "monospace", fontSize: 15 }}>◑</div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: V.text, marginBottom: 2 }}>Histórico de análises</div>
+              <div style={{ fontSize: 11, color: V.text2 }}>{LS.get("vela_historico", []).length} análises salvas</div>
+            </div>
+          </button>
           <button onClick={onCheckin}
             style={{ background: "transparent", border: `1px solid ${V.border}`, borderRadius: 12, padding: "11px 15px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 34, height: 34, borderRadius: 9, background: V.surface3, display: "flex", alignItems: "center", justifyContent: "center", color: V.text2, fontFamily: "monospace", fontSize: 15 }}>◉</div>
@@ -793,7 +846,85 @@ function HomePage({ dados, onCheckin, onUpdate, onNav }) {
   );
 }
 
-// ── COCKPIT — Análise de Indicadores ──
+// ── SALVAR ANÁLISE NO HISTÓRICO ──
+function salvarNoHistorico(modulo, resumo, resultado) {
+  const historico = LS.get("vela_historico", []);
+  const novaEntrada = {
+    id: Date.now(),
+    modulo,
+    resumo: resumo.substring(0, 80),
+    resultado,
+    data: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+  };
+  const atualizado = [novaEntrada, ...historico].slice(0, 30);
+  LS.set("vela_historico", atualizado);
+}
+
+// ── HISTÓRICO PAGE ──
+function HistoricoPage({ onBack }) {
+  const [historico] = useState(() => LS.get("vela_historico", []));
+  const [aberto, setAberto] = useState(null);
+
+  const moduloConfig = {
+    cockpit: { icon: "◆", color: V.amber, label: "Cockpit" },
+    feedback: { icon: "▷", color: V.indigo, label: "Feedback" },
+    matriz: { icon: "◇", color: V.teal, label: "Prioridades" },
+    crise: { icon: "⚡", color: V.rose, label: "Crise" },
+    narrativa: { icon: "✦", color: V.amber, label: "Narrativa" },
+  };
+
+  return (
+    <div>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: V.text2, cursor: "pointer", fontSize: 13, fontFamily: "inherit", marginBottom: 20, padding: 0, display: "flex", alignItems: "center", gap: 6 }}>
+        ← Voltar
+      </button>
+      <SectionLabel>Sua jornada</SectionLabel>
+      <PageTitle accent="de Análises">Histórico</PageTitle>
+      <div style={{ color: V.text2, fontSize: 12, marginBottom: 20 }}>Todas as análises geradas, em ordem cronológica.</div>
+
+      {historico.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px 20px", color: V.text2, fontSize: 13 }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>◑</div>
+          Nenhuma análise ainda. Gere sua primeira análise em qualquer módulo — ela aparece aqui automaticamente.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {historico.map(h => {
+            const cfg = moduloConfig[h.modulo] || { icon: "◈", color: V.amber, label: h.modulo };
+            const isAberto = aberto === h.id;
+            return (
+              <div key={h.id} style={{ background: V.surface, border: `1px solid ${isAberto ? cfg.color + "40" : V.border}`, borderRadius: 13, overflow: "hidden", transition: "border-color 0.2s" }}>
+                <button onClick={() => setAberto(isAberto ? null : h.id)}
+                  style={{ width: "100%", background: "none", border: "none", padding: "14px 15px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: `${cfg.color}15`, display: "flex", alignItems: "center", justifyContent: "center", color: cfg.color, fontFamily: "monospace", fontSize: 14, flexShrink: 0 }}>{cfg.icon}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: cfg.color, textTransform: "uppercase", letterSpacing: "0.5px" }}>{cfg.label}</span>
+                      <span style={{ fontSize: 10, color: V.text2 }}>· {h.data}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: V.text2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.resumo}</div>
+                  </div>
+                  <span style={{ color: V.text2, fontSize: 12, flexShrink: 0 }}>{isAberto ? "▲" : "▼"}</span>
+                </button>
+                {isAberto && (
+                  <div style={{ padding: "0 15px 15px", borderTop: `1px solid ${V.border}` }}>
+                    <div style={{ paddingTop: 12, color: V.text, fontSize: 12, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{h.resultado}</div>
+                    <button onClick={() => navigator.clipboard?.writeText(h.resultado)}
+                      style={{ marginTop: 10, background: "none", border: `1px solid ${V.border}`, color: V.text2, borderRadius: 7, padding: "6px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 11 }}>
+                      📋 Copiar análise
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function CockpitPage({ dados }) {
   const [indicador, setIndicador] = useState("");
   const [foco, setFoco] = useState(() => LS.get("cockpit_foco", "churn"));
@@ -821,6 +952,7 @@ function CockpitPage({ dados }) {
       const novoHistorico = [{ foco: focoAtual?.label, texto: indicador.substring(0, 50), resultado: texto }, ...historico].slice(0, 5);
       setHistorico(novoHistorico);
       LS.set("cockpit_historico", novoHistorico);
+      salvarNoHistorico("cockpit", `${focoAtual?.label}: ${indicador}`, texto);
     } catch (e) {
       setResult("Erro ao gerar análise. Verifique sua conexão e tente novamente.");
     }
@@ -1026,6 +1158,7 @@ function MatrizPage({ dados }) {
           try {
             const r = await gerarPriorizacao({ ...dados, contextoSemana: ctx }, tamanhoTime, momentoEmpresa, tipoSemana);
             setResult(r);
+            salvarNoHistorico("matriz", ctx || "Priorização semanal", r);
           } catch (e) { setResult("Erro ao gerar. Verifique sua conexão."); }
           setLoading(false);
         }} loading={loading}>✦ Receber recomendação estratégica</BtnPrimary>
@@ -1125,6 +1258,7 @@ function FeedbackPage({ dados }) {
           try {
             const r = await gerarFeedback(desafio, sev, cargo, tempo, tipoComp, historico);
             setResult(r);
+            salvarNoHistorico("feedback", desafio, r);
           } catch (e) { setResult("Erro ao gerar. Verifique sua conexão."); }
           setLoading(false);
         }} loading={loading}>✦ Estruturar feedback</BtnPrimary>
@@ -1149,6 +1283,7 @@ function CrisePage({ dados }) {
     try {
       const r = await gerarAnaliseCrise(problema, gravidade, quantos, jaFez);
       setResult(r);
+      salvarNoHistorico("crise", problema, r);
     } catch (e) { setResult("Erro ao gerar. Verifique sua conexão."); }
     setLoading(false);
   };
@@ -1254,6 +1389,7 @@ function NarrativaPage({ dados }) {
     try {
       const r = await gerarNarrativa({ ...dados, rawMetricas: editDados }, aud, obj, tone, tamanhoTime, momentoEmpresa);
       setResult(r);
+      salvarNoHistorico("narrativa", editDados, r);
     } catch (e) { setResult("Erro ao gerar. Verifique sua conexão."); }
     setLoading(false);
   };
@@ -1379,6 +1515,7 @@ export default function App() {
     feedback: <FeedbackPage dados={dados} />,
     crise: <CrisePage dados={dados} />,
     narrativa: <NarrativaPage dados={dados} />,
+    historico: <HistoricoPage onBack={() => handleNav("home")} />,
   };
 
   return (
