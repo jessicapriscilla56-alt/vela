@@ -411,7 +411,7 @@ const ResultBox = ({ text, modulo = "", promptOriginal = "" }) => {
   return (
     <div style={{ background: V.amberGlow, border: `1px solid ${V.amber}30`, borderLeft: `3px solid ${V.amber}`, borderRadius: 12, padding: 18, marginTop: 16 }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: V.amber, letterSpacing: "2px", textTransform: "uppercase", marginBottom: 12 }}>✦ Resultado</div>
-      <div style={{ color: V.text, fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap", fontWeight: 400 }}>{text}</div>
+      <MarkdownText text={text} />
 
       {/* Ações */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, paddingTop: 14, borderTop: `1px solid ${V.border}` }}>
@@ -482,7 +482,7 @@ const ResultBox = ({ text, modulo = "", promptOriginal = "" }) => {
       {followUpResult && (
         <div style={{ marginTop: 12, background: V.surface2, border: `1px solid ${V.border}`, borderLeft: `3px solid ${V.teal}`, borderRadius: 10, padding: 14 }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: V.teal, letterSpacing: "2px", textTransform: "uppercase", marginBottom: 8 }}>◈ Continuação</div>
-          <div style={{ color: V.text, fontSize: 13, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{followUpResult}</div>
+          <MarkdownText text={followUpResult} />
           <button onClick={() => setFollowUpResult("")}
             style={{ marginTop: 10, background: "none", border: "none", color: V.text2, cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}>
             ✕ Fechar
@@ -498,6 +498,108 @@ const PreBadge = ({ text = "Pré-preenchido do check-in — ajuste se quiser" })
     ◈ {text}
   </div>
 );
+
+// ── RENDERIZADOR DE MARKDOWN ──
+function MarkdownText({ text }) {
+  if (!text) return null;
+  const lines = text.split("\n");
+  const elements = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Linha em branco
+    if (!line.trim()) { i++; continue; }
+
+    // Título com ✦ ou # 
+    if (line.startsWith("✦ ") || line.startsWith("# ")) {
+      const content = line.replace(/^✦ |^# /, "");
+      elements.push(
+        <div key={i} style={{ fontSize: 10, fontWeight: 700, color: V.amber, letterSpacing: "1.5px", textTransform: "uppercase", marginTop: 18, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 16, height: 1, background: V.amber }} />
+          {content.replace(/\*\*/g, "")}
+        </div>
+      );
+      i++; continue;
+    }
+
+    // Subtítulo ##
+    if (line.startsWith("## ")) {
+      const content = line.replace(/^## /, "");
+      elements.push(
+        <div key={i} style={{ fontSize: 12, fontWeight: 700, color: V.text, marginTop: 14, marginBottom: 5 }}>
+          {content.replace(/\*\*/g, "")}
+        </div>
+      );
+      i++; continue;
+    }
+
+    // Separador ---
+    if (line.trim() === "---" || line.trim() === "---") {
+      elements.push(<div key={i} style={{ height: 1, background: V.border, margin: "12px 0" }} />);
+      i++; continue;
+    }
+
+    // Item de lista com - ou •
+    if (line.match(/^[-•]\s/)) {
+      const items = [];
+      while (i < lines.length && lines[i].match(/^[-•]\s/)) {
+        items.push(lines[i].replace(/^[-•]\s/, "").replace(/\*\*(.*?)\*\*/g, "$1"));
+        i++;
+      }
+      elements.push(
+        <div key={`list-${i}`} style={{ display: "flex", flexDirection: "column", gap: 6, margin: "6px 0" }}>
+          {items.map((item, j) => (
+            <div key={j} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <span style={{ color: V.amber, fontSize: 10, marginTop: 3, flexShrink: 0 }}>✦</span>
+              <span style={{ color: V.text2, fontSize: 13, lineHeight: 1.7 }}>{item}</span>
+            </div>
+          ))}
+        </div>
+      );
+      continue;
+    }
+
+    // Item numerado 1. 2. etc
+    if (line.match(/^\d+\.\s/)) {
+      const items = [];
+      let num = 1;
+      while (i < lines.length && lines[i].match(/^\d+\.\s/)) {
+        items.push({ n: num++, text: lines[i].replace(/^\d+\.\s/, "").replace(/\*\*(.*?)\*\*/g, "$1") });
+        i++;
+      }
+      elements.push(
+        <div key={`num-${i}`} style={{ display: "flex", flexDirection: "column", gap: 8, margin: "8px 0" }}>
+          {items.map((item, j) => (
+            <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <span style={{ color: V.amber, fontSize: 11, fontWeight: 700, flexShrink: 0, minWidth: 16, marginTop: 1 }}>{item.n}.</span>
+              <span style={{ color: V.text, fontSize: 13, lineHeight: 1.7 }}>{item.text}</span>
+            </div>
+          ))}
+        </div>
+      );
+      continue;
+    }
+
+    // Texto normal — renderiza **bold** inline
+    const formatted = line.replace(/\*\*(.*?)\*\*/g, (_, m) => `__BOLD__${m}__ENDBOLD__`);
+    const parts = formatted.split(/(\_\_BOLD\_\_.*?\_\_ENDBOLD\_\_)/);
+    elements.push(
+      <p key={i} style={{ color: V.text2, fontSize: 13, lineHeight: 1.8, margin: "3px 0" }}>
+        {parts.map((p, j) => {
+          if (p.startsWith("__BOLD__")) {
+            return <strong key={j} style={{ color: V.text, fontWeight: 600 }}>{p.replace(/__BOLD__|__ENDBOLD__/g, "")}</strong>;
+          }
+          return p.replace(/\*(.*?)\*/g, "$1");
+        })}
+      </p>
+    );
+    i++;
+  }
+
+  return <div>{elements}</div>;
+}
 
 // ── PRINCÍPIO DA SEMANA ──
 function PrincipioDaSemana() {
@@ -908,7 +1010,7 @@ function HistoricoPage({ onBack }) {
                 </button>
                 {isAberto && (
                   <div style={{ padding: "0 15px 15px", borderTop: `1px solid ${V.border}` }}>
-                    <div style={{ paddingTop: 12, color: V.text, fontSize: 12, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{h.resultado}</div>
+                    <div style={{ paddingTop: 12 }}><MarkdownText text={h.resultado} /></div>
                     <button onClick={() => navigator.clipboard?.writeText(h.resultado)}
                       style={{ marginTop: 10, background: "none", border: `1px solid ${V.border}`, color: V.text2, borderRadius: 7, padding: "6px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 11 }}>
                       📋 Copiar análise
