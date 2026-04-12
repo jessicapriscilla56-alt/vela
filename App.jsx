@@ -33,6 +33,8 @@ const CHECKIN_FULL = [
   { id: "semana", emoji: "◇", title: "Como está sua semana?", sub: "O que está acontecendo, o que está pesando mais", placeholder: "Ex: QBR na quinta com 3 contas em risco, time sobrecarregado..." },
   { id: "desafio", emoji: "▷", title: "Qual seu maior desafio de liderança agora?", sub: "Com o time, processos ou stakeholders", placeholder: "Ex: Preciso dar um feedback difícil para meu CS sênior que não está entregando..." },
   { id: "prioridade", emoji: "✦", title: "Se você pudesse resolver uma coisa essa semana, o que seria?", sub: "O que, se resolvido, muda o jogo", placeholder: "Ex: Fechar as renovações em aberto antes do fim do mês..." },
+  { id: "estilo", emoji: "◎", title: "Como você se descreve como líder?", sub: "Seu estilo, seus pontos fortes e seus maiores desafios recorrentes", placeholder: "Ex: Sou muito direta, prefiro autonomia no time, tenho dificuldade com conversas difíceis e tendência a resolver tudo sozinha..." },
+  { id: "cultura", emoji: "◑", title: "Como é a cultura da sua empresa?", sub: "Valores, jeito de trabalhar, código de conduta — cole aqui se quiser", placeholder: "Ex: Empresa de alto crescimento, cultura de ownership, feedback direto, foco em resultado. Valorizamos transparência e velocidade sobre perfeição..." },
 ];
 
 const CHECKIN_UPDATE = [
@@ -104,7 +106,10 @@ async function chamarClaude(prompt) {
   return data.content[0].text;
 }
 
-const SISTEMA = `Você é o Vela, um copiloto de liderança para líderes de CS (Customer Success) e CX (Customer Experience) em startups brasileiras. Você foi criado com base no livro "Liderança Customer Centric" e na metodologia da autora.
+function getSistema(dados) {
+  const perfil = dados?.estiloLideranca ? `\nPERFIL DESTA LÍDER:\n${dados.estiloLideranca}` : "";
+  const cultura = dados?.culturaEmpresa ? `\nCULTURA DA EMPRESA:\n${dados.culturaEmpresa}` : "";
+  return `Você é o Vela, um copiloto de liderança para líderes de CS (Customer Success) e CX (Customer Experience) em startups brasileiras. Você foi criado com base no livro "Liderança Customer Centric" e na metodologia da autora.
 
 Princípios que guiam todas as suas respostas:
 - "Fato não tem defesa. Julgamento tem." — sempre baseie análises em comportamentos e dados concretos, nunca em impressões
@@ -118,14 +123,18 @@ Seu estilo:
 - Respostas práticas e acionáveis — o líder precisa saber o que fazer
 - Linguagem profissional mas humana, em português brasileiro
 - Estruture as respostas com seções claras usando ✦ como marcador
-- Máximo de 500 palavras por resposta`;
+- Máximo de 500 palavras por resposta${perfil}${cultura}`;
+}
 
-async function gerarFeedback(desafio, sev, cargo, tempo, tipoComp, historico) {
+// Mantém SISTEMA como fallback sem perfil
+const SISTEMA = getSistema(null);
+
+async function gerarFeedback(desafio, sev, cargo, tempo, tipoComp, historico, dados) {
   const sevMap = { dev: "desenvolvimento (tom: curioso, encorajador)", at: "atenção (tom: direto, construtivo)", crit: "crítico (tom: firme, claro)", dem: "pré-demissão (tom: transparente, sério)" };
   const tempoMap = { novo: "menos de 3 meses na equipe", medio: "3 a 12 meses na equipe", senior: "mais de 1 ano na equipe" };
   const compMap = { entrega: "entrega e resultado", relacionamento: "relacionamento interpessoal", autonomia: "autonomia e iniciativa", comunicacao: "comunicação", padrao: "comportamento geral" };
 
-  const prompt = `${SISTEMA}
+  const prompt = `${getSistema(dados)}
 
 MÓDULO: Estruturação de Feedback
 
@@ -157,7 +166,7 @@ async function gerarNarrativa(dados, aud, obj, tone, tamanhoTime, momentoEmpresa
   const objMap = { res: "apresentar o resultado do período", apr: "justificar um investimento em CS/CX", alert: "comunicar um risco que exige ação", exp: "apresentar oportunidade de expansão de receita" };
   const toneMap = { ot: "otimista — destacando momentum e oportunidades", neu: "neutro — apresentando o quadro real com equilíbrio", urg: "urgente — comunicando risco e necessidade de decisão imediata" };
 
-  const prompt = `${SISTEMA}
+  const prompt = `${getSistema(dados)}
 
 MÓDULO: Narrativa para Diretoria
 
@@ -181,7 +190,7 @@ async function gerarPriorizacao(dados, tamanhoTime, momentoEmpresa, tipoSemana) 
   const { contextoSemana, prioridade, desafioLideranca } = dados;
   const semanaMap = { estrategico: "calma/estratégica", normal: "normal", atarefado: "muito cheia/atarefada", crise: "em crise" };
 
-  const prompt = `${SISTEMA}
+  const prompt = `${getSistema(dados)}
 
 MÓDULO: Próximos Movimentos — Priorização Semanal
 
@@ -198,10 +207,10 @@ Com base na Matriz de Eisenhower aplicada à liderança de CS/CX, estruture os 3
   return await chamarClaude(prompt);
 }
 
-async function gerarAnaliseIndicador(indicador, foco) {
+async function gerarAnaliseIndicador(indicador, foco, dados) {
   const focoMap = { churn: "Churn (taxa de cancelamento)", nps: "NPS (Net Promoter Score)", csat: "CSAT (satisfação por interação)", expansao: "Expansão de receita (MRR expansion)", onboarding: "Onboarding (ativação de clientes)", retencao: "Retenção (renovações e permanência)" };
 
-  const prompt = `${SISTEMA}
+  const prompt = `${getSistema(dados)}
 
 MÓDULO: Cockpit — Análise de Indicador
 
@@ -222,11 +231,11 @@ Seja específico ao que foi descrito. Não dê respostas genéricas sobre o indi
   return await chamarClaude(prompt);
 }
 
-async function gerarAnaliseCrise(problema, gravidade, quantos, jaFez) {
+async function gerarAnaliseCrise(problema, gravidade, quantos, jaFez, dados) {
   const gravMap = { insatisfeito: "cliente insatisfeito", travado: "cliente travado/impedido de operar", churn: "risco real de churn", confirmado: "churn confirmado" };
   const quantosMap = { um: "1 cliente afetado", varios: "múltiplos clientes afetados", sistemico: "problema sistêmico" };
 
-  const prompt = `${SISTEMA}
+  const prompt = `${getSistema(dados)}
 
 MÓDULO: Gestão de Crise
 
@@ -649,6 +658,8 @@ function CheckinFlow({ onComplete, isUpdate }) {
       prioridade: resps.prioridade || "",
       rawMetricas: resps.metricas || "",
       tarefasMatriz: gerarTarefas(resps.semana, resps.prioridade, resps.desafio),
+      estiloLideranca: resps.estilo || "",
+      culturaEmpresa: resps.cultura || "",
     };
   };
 
@@ -933,6 +944,14 @@ function HomePage({ dados, onCheckin, onUpdate, onNav }) {
               <div style={{ fontSize: 11, color: V.text2 }}>{LS.get("vela_historico", []).length} análises salvas</div>
             </div>
           </button>
+          <button onClick={() => onNav("perfil")}
+            style={{ background: V.surface, border: `1px solid ${V.border}`, borderRadius: 12, padding: "13px 15px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: V.amberDim, display: "flex", alignItems: "center", justifyContent: "center", color: V.amber, fontFamily: "monospace", fontSize: 15 }}>◎</div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: V.text, marginBottom: 2 }}>Meu perfil de liderança</div>
+              <div style={{ fontSize: 11, color: dados?.estiloLideranca ? V.teal : V.text2 }}>{dados?.estiloLideranca ? "✓ Configurado" : "Personalizar respostas"}</div>
+            </div>
+          </button>
           <button onClick={onCheckin}
             style={{ background: "transparent", border: `1px solid ${V.border}`, borderRadius: 12, padding: "11px 15px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 34, height: 34, borderRadius: 9, background: V.surface3, display: "flex", alignItems: "center", justifyContent: "center", color: V.text2, fontFamily: "monospace", fontSize: 15 }}>◉</div>
@@ -970,6 +989,50 @@ function salvarNoHistorico(modulo, resumo, resultado) {
 }
 
 // ── HISTÓRICO PAGE ──
+// ── PERFIL DE LIDERANÇA ──
+function PerfilPage({ dados, onBack, onSave }) {
+  const [estilo, setEstilo] = useState(dados?.estiloLideranca || "");
+  const [cultura, setCultura] = useState(dados?.culturaEmpresa || "");
+  const [saved, setSaved] = useState(false);
+
+  const salvar = () => {
+    onSave({ estiloLideranca: estilo, culturaEmpresa: cultura });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: V.text2, cursor: "pointer", fontSize: 13, fontFamily: "inherit", marginBottom: 20, padding: 0 }}>← Voltar</button>
+      <SectionLabel>Contexto permanente</SectionLabel>
+      <PageTitle accent="de Liderança">Meu Perfil</PageTitle>
+      <div style={{ color: V.text2, fontSize: 12, marginBottom: 20, lineHeight: 1.7 }}>
+        Essas informações são usadas em <strong style={{ color: V.text }}>todas as análises</strong> para personalizar as respostas ao seu estilo e contexto.
+      </div>
+
+      <div style={{ padding: "12px 14px", background: V.amberGlow, border: `1px solid ${V.amber}20`, borderRadius: 10, marginBottom: 20, fontSize: 12, color: V.text2, lineHeight: 1.7 }}>
+        <span style={{ color: V.amber, fontWeight: 700 }}>Como usar: </span>Quanto mais específico, mais personalizada a resposta. Cole o código de cultura da empresa, descreva seu estilo com exemplos reais.
+      </div>
+
+      <Card>
+        <Label>Meu estilo de liderança</Label>
+        <div style={{ fontSize: 11, color: V.text2, marginBottom: 10, lineHeight: 1.6 }}>Como você lidera, seus pontos fortes, seus desafios recorrentes, como prefere se comunicar com o time.</div>
+        <VoiceTextArea value={estilo} onChange={e => setEstilo(e.target.value)} rows={5}
+          placeholder="Ex: Sou direta e objetiva, prefiro dar autonomia ao time antes de intervir. Meu ponto forte é estruturar processos em caos. Tenho dificuldade com conversas de confronto e tendência a assumir tudo quando o time trava..." />
+      </Card>
+
+      <Card>
+        <Label>Cultura e valores da empresa</Label>
+        <div style={{ fontSize: 11, color: V.text2, marginBottom: 10, lineHeight: 1.6 }}>Cole o código de cultura, manifesto de liderança ou descreva como a empresa trabalha. Pode ser longo — o Vela vai usar apenas o que for relevante.</div>
+        <VoiceTextArea value={cultura} onChange={e => setCultura(e.target.value)} rows={6}
+          placeholder="Ex: Empresa de alto crescimento com cultura de ownership. Valorizamos transparência radical, velocidade sobre perfeição e feedback direto. Líderes são esperados a desenvolver seus times e não criar dependência..." />
+      </Card>
+
+      <BtnPrimary onClick={salvar}>{saved ? "✓ Salvo!" : "✦ Salvar perfil"}</BtnPrimary>
+    </div>
+  );
+}
+
 function HistoricoPage({ onBack }) {
   const [historico, setHistorico] = useState([]);
   const [aberto, setAberto] = useState(null);
@@ -1060,7 +1123,7 @@ function CockpitPage({ dados }) {
     if (!indicador.trim()) { alert("Descreva o indicador primeiro."); return; }
     setLoading(true);
     try {
-      const texto = await gerarAnaliseIndicador(indicador, foco);
+      const texto = await gerarAnaliseIndicador(indicador, foco, dados);
       setResult(texto);
       const novoHistorico = [{ foco: focoAtual?.label, texto: indicador.substring(0, 50), resultado: texto }, ...historico].slice(0, 5);
       setHistorico(novoHistorico);
@@ -1369,7 +1432,7 @@ function FeedbackPage({ dados }) {
           if (!desafio.trim()) { alert("Descreva a situação."); return; }
           setLoading(true);
           try {
-            const r = await gerarFeedback(desafio, sev, cargo, tempo, tipoComp, historico);
+            const r = await gerarFeedback(desafio, sev, cargo, tempo, tipoComp, historico, dados);
             setResult(r);
             salvarNoHistorico("feedback", desafio, r);
           } catch (e) { setResult("Erro ao gerar. Verifique sua conexão."); }
@@ -1394,7 +1457,7 @@ function CrisePage({ dados }) {
     if (!problema.trim()) { alert("Descreva o problema primeiro."); return; }
     setLoading(true);
     try {
-      const r = await gerarAnaliseCrise(problema, gravidade, quantos, jaFez);
+      const r = await gerarAnaliseCrise(problema, gravidade, quantos, jaFez, dados);
       setResult(r);
       salvarNoHistorico("crise", problema, r);
     } catch (e) { setResult("Erro ao gerar. Verifique sua conexão."); }
@@ -1629,6 +1692,11 @@ export default function App() {
     crise: <CrisePage dados={dados} />,
     narrativa: <NarrativaPage dados={dados} />,
     historico: <HistoricoPage onBack={() => handleNav("home")} />,
+    perfil: <PerfilPage dados={dados} onBack={() => handleNav("home")} onSave={(updates) => {
+      const novo = { ...dados, ...updates };
+      setDados(novo);
+      LS.set("vela_dados", novo);
+    }} />,
   };
 
   return (
