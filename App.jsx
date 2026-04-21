@@ -2529,14 +2529,19 @@ const LS = {
 };
 
 // ── APP ──
-const NAV = [
+const NAV_BOTTOM = [
   { id: "home", icon: "◎", label: "Início" },
-  { id: "cockpit", icon: "◆", label: "Cockpit" },
-  { id: "matriz", icon: "◇", label: "Matriz" },
-  { id: "feedback", icon: "▷", label: "Feedback" },
-  { id: "crise", icon: "⚡", label: "Crise" },
-  { id: "narrativa", icon: "✦", label: "Narrativa" },
   { id: "comunidade", icon: "◑", label: "Comunidade" },
+  { id: "perfil", icon: "◈", label: "Perfil" },
+];
+
+const DRAWER_ITEMS = [
+  { id: "cockpit", icon: "◆", label: "Cockpit", sub: "Indicadores", color: "#F0A500" },
+  { id: "matriz", icon: "◇", label: "Prioridades", sub: "Análise estratégica", color: "#2DD4BF" },
+  { id: "feedback", icon: "▷", label: "Feedback", sub: "Fato → Impacto → Futuro", color: "#818CF8" },
+  { id: "crise", icon: "⚡", label: "Gestão de Crise", sub: "Diagnóstico rápido", color: "#FB7185" },
+  { id: "narrativa", icon: "✦", label: "Narrativa", sub: "Para diretoria", color: "#F0A500" },
+  { id: "historico", icon: "◑", label: "Histórico", sub: "Análises salvas", color: "#818CF8" },
 ];
 
 export default function App() {
@@ -2547,6 +2552,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [notifStatus, setNotifStatus] = useState("idle");
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Autenticação
   useEffect(() => {
@@ -2667,38 +2673,21 @@ export default function App() {
       `}</style>
 
       {/* Header */}
-      <div style={{ background: V.gradHeader || V.surface, borderBottom: `1px solid ${V.border}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0, backdropFilter: "blur(12px)" }}>
+      <div style={{ background: V.gradHeader || V.surface, borderBottom: `1px solid ${V.border}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         <div style={{ width: 30, height: 30, background: `linear-gradient(135deg, #F5A800, #C8880A)`, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontFamily: "monospace", color: "#080A0F", fontWeight: 700, boxShadow: "0 2px 8px rgba(240,165,0,0.3)" }}>◎</div>
         <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 17, letterSpacing: -0.5, flex: 1, color: V.text }}>Vela</div>
 
-        <button onClick={toggleTema}
-          style={{ background: V.surface2, border: `1px solid ${V.border}`, color: V.text2, borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", fontSize: 13, marginRight: 4, transition: "all 0.2s" }}>
-          {tema === "escuro" ? "☀️" : "🌙"}
-        </button>
-
-        {/* Avatar do usuário */}
         {user && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {user.user_metadata?.avatar_url ? (
-              <img src={user.user_metadata.avatar_url} style={{ width: 28, height: 28, borderRadius: "50%", border: `1.5px solid ${V.border2}` }} alt="avatar" />
-            ) : (
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: V.surface3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: V.text2, border: `1.5px solid ${V.border2}` }}>
-                {(user.user_metadata?.full_name || user.email || "U")[0].toUpperCase()}
-              </div>
-            )}
-            <button onClick={async () => { await sb.signOut(); setUser(null); }}
-              style={{ background: "none", border: "none", color: V.text3, cursor: "pointer", fontSize: 11, fontFamily: "inherit", padding: "2px 4px" }}>
-              Sair
-            </button>
+          <div style={{ width: 26, height: 26, borderRadius: "50%", background: V.surface3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: V.text2, border: `1.5px solid ${V.border2}`, marginRight: 4 }}>
+            {(user.user_metadata?.full_name || user.email || "U")[0].toUpperCase()}
           </div>
         )}
 
-        {dados && (
-          <button onClick={() => setOverlay("update")}
-            style={{ background: V.tealDim, border: `1px solid ${V.teal}30`, color: V.teal, borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600, letterSpacing: "0.3px" }}>
-            ◈ Check-out
-          </button>
-        )}
+        {/* Hamburger */}
+        <button onClick={() => setDrawerOpen(true)}
+          style={{ background: V.surface2, border: `1px solid ${V.border}`, borderRadius: 8, padding: "8px 10px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 4 }}>
+          {[0,1,2].map(i => <div key={i} style={{ width: 18, height: 2, background: V.text2, borderRadius: 1 }} />)}
+        </button>
       </div>
 
       {/* Content */}
@@ -2707,9 +2696,9 @@ export default function App() {
         <div style={{ height: 48 }} />
       </div>
 
-      {/* Nav */}
+      {/* Bottom Nav — 3 itens */}
       <div style={{ background: V.gradNav || V.surface, borderTop: `1px solid ${V.border}`, display: "flex", flexShrink: 0, paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)" }}>
-        {NAV.map(n => (
+        {NAV_BOTTOM.map(n => (
           <button key={n.id} onClick={() => handleNav(n.id)}
             style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, padding: "12px 2px 10px", background: "none", border: "none", color: page === n.id ? V.amber : V.navInativo, cursor: "pointer", fontFamily: "monospace", borderTop: page === n.id ? `1.5px solid ${V.amber}` : "1.5px solid transparent", transition: "color 0.2s", position: "relative" }}>
             {page === n.id && <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 24, height: 1, background: V.amber, borderRadius: 1, boxShadow: "0 0 8px rgba(240,165,0,0.6)" }} />}
@@ -2718,6 +2707,46 @@ export default function App() {
           </button>
         ))}
       </div>
+
+      {/* Drawer lateral */}
+      {drawerOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 300, display: "flex" }}>
+          <div onClick={() => setDrawerOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
+          <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "72%", maxWidth: 280, background: V.surface, borderLeft: `1px solid ${V.border}`, display: "flex", flexDirection: "column", animation: "slideIn 0.25s ease" }}>
+            <style>{`@keyframes slideIn { from{transform:translateX(100%)} to{transform:translateX(0)} }`}</style>
+
+            <div style={{ padding: "16px 16px 14px", borderBottom: `1px solid ${V.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "max(16px, env(safe-area-inset-top, 16px))" }}>
+              <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 16, fontWeight: 700, color: V.text }}>Módulos</div>
+              <button onClick={() => setDrawerOpen(false)} style={{ background: V.surface2, border: `1px solid ${V.border}`, color: V.text2, borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: "auto", padding: "10px 0" }}>
+              {DRAWER_ITEMS.map(item => (
+                <button key={item.id} onClick={() => { handleNav(item.id); setDrawerOpen(false); }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", background: page === item.id ? `${item.color}15` : "none", border: "none", borderLeft: page === item.id ? `2.5px solid ${item.color}` : "2.5px solid transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "background 0.15s" }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: `${item.color}20`, display: "flex", alignItems: "center", justifyContent: "center", color: item.color, fontFamily: "monospace", fontSize: 16, flexShrink: 0 }}>{item.icon}</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: page === item.id ? item.color : V.text, marginBottom: 2 }}>{item.label}</div>
+                    <div style={{ fontSize: 11, color: V.text2 }}>{item.sub}</div>
+                  </div>
+                </button>
+              ))}
+
+              <div style={{ margin: "8px 16px", borderTop: `1px solid ${V.border}` }} />
+
+              <button onClick={async () => { await sb.signOut(); setUser(null); setDrawerOpen(false); }}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: V.surface2, display: "flex", alignItems: "center", justifyContent: "center", color: V.text3, fontSize: 16 }}>↩</div>
+                <div style={{ fontSize: 14, color: V.text3 }}>Sair da conta</div>
+              </button>
+            </div>
+
+            <div style={{ padding: "12px 16px", borderTop: `1px solid ${V.border}` }}>
+              <div style={{ fontSize: 10, color: V.text3 }}>Vela · Copiloto do Líder de CS/CX</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {overlay && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(8,10,15,0.96)", zIndex: 200, display: "flex", flexDirection: "column", backdropFilter: "blur(12px)", animation: "fadeIn 0.2s ease" }}>
