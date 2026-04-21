@@ -591,8 +591,12 @@ const TextArea = ({ rows = 4, style, ...props }) => (
 function VoiceTextArea({ rows = 4, value, onChange, placeholder, style }) {
   const [rec, setRec] = useState("idle");
   const recRef = useRef(null);
-  const accRef = useRef(""); // acumula texto entre pausas automáticas do iOS
-  const activeRef = useRef(false); // controla se o usuário ainda quer gravar
+  const accRef = useRef(""); // acumula texto desta sessão de gravação
+  const activeRef = useRef(false);
+  const valueRef = useRef(value); // sempre tem o valor atual sem closure stale
+
+  // Atualiza valueRef sempre que value muda
+  useEffect(() => { valueRef.current = value; }, [value]);
 
   const startRec = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -606,11 +610,15 @@ function VoiceTextArea({ rows = 4, value, onChange, placeholder, style }) {
       }
       if (t) {
         accRef.current += t;
-        onChange({ target: { value: (value || "") + accRef.current } });
+        // Usa valueRef.current para sempre pegar o valor mais recente
+        const baseValue = valueRef.current || "";
+        const novoValor = baseValue.endsWith(accRef.current.trimEnd())
+          ? baseValue
+          : baseValue + accRef.current;
+        onChange({ target: { value: novoValor } });
       }
     };
     r.onend = () => {
-      // iOS para automaticamente — se o usuário não clicou em parar, reinicia
       if (activeRef.current) {
         try { r.start(); } catch {}
       } else {
