@@ -1,6 +1,75 @@
 import { useState, useRef, useEffect } from "react";
 
-// ── SUPABASE ──
+// ── NOTIFICAÇÕES PUSH ──
+const NOTIFICACOES = [
+  // Segunda-feira 8h
+  { id: "seg_1", diaSemana: 1, hora: 8, titulo: "◎ Vela", corpo: "A semana começou e já tem coisa chegando de todos os lados? Normal. Abre o Vela e organiza o que é urgente de verdade do que pode esperar.", url: "/?tela=matriz" },
+  { id: "seg_2", diaSemana: 1, hora: 8, titulo: "◎ Vela", corpo: "Princípio da semana te espera. Uma ideia pra carregar com você hoje.", url: "/" },
+  // Quarta-feira 10h
+  { id: "qua_1", diaSemana: 3, hora: 10, titulo: "◎ Vela", corpo: "Já é quarta. Aquela conversa difícil que você foi adiando desde segunda — ela não vai sumir. O Vela te ajuda a estruturar antes que a semana acabe.", url: "/?tela=feedback" },
+  { id: "qua_2", diaSemana: 3, hora: 10, titulo: "◎ Vela", corpo: "Você está resolvendo problema dos outros ou avançando no que é seu? Para 2 minutos e vê suas prioridades.", url: "/?tela=matriz" },
+  // Sexta-feira 16h
+  { id: "sex_1", diaSemana: 5, hora: 16, titulo: "◎ Vela", corpo: "Antes de fechar: tem algum cliente que ficou sem resposta essa semana? Pequenas lacunas viram churns.", url: "/?tela=cockpit" },
+  { id: "sex_2", diaSemana: 5, hora: 16, titulo: "◎ Vela", corpo: "Como você vai contar essa semana pra sua liderança? O Vela transforma seus dados em narrativa em minutos.", url: "/?tela=narrativa" },
+  // Gatilhos de liderança — terça 9h
+  { id: "ter_1", diaSemana: 2, hora: 9, titulo: "◎ Vela", corpo: "Reunião de time hoje? Entra no Vela antes — vê o que está pesando no seu contexto e chega mais preparada.", url: "/" },
+  { id: "ter_2", diaSemana: 2, hora: 9, titulo: "◎ Vela", corpo: "Tem alguém no seu time que está travado e você ainda não sabe como ajudar? O módulo de Feedback pode clarear isso.", url: "/?tela=feedback" },
+];
+
+const notifManager = {
+  async pedirPermissao() {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) return false;
+    const perm = await Notification.requestPermission();
+    return perm === "granted";
+  },
+
+  async registrarSW() {
+    if (!("serviceWorker" in navigator)) return null;
+    try {
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      return reg;
+    } catch (e) { return null; }
+  },
+
+  agendarNotificacoes() {
+    // Agenda via setTimeout local — funciona mesmo sem servidor push
+    const agora = new Date();
+    const diaSemana = agora.getDay(); // 0=dom, 1=seg...
+
+    NOTIFICACOES.forEach(n => {
+      const diasAte = (n.diaSemana - diaSemana + 7) % 7;
+      const alvo = new Date(agora);
+      alvo.setDate(agora.getDate() + diasAte);
+      alvo.setHours(n.hora, 0, 0, 0);
+      const delay = alvo.getTime() - agora.getTime();
+
+      // Só agenda se for nas próximas 7 dias e no futuro
+      if (delay > 0 && delay < 7 * 24 * 60 * 60 * 1000) {
+        setTimeout(() => {
+          if (Notification.permission === "granted") {
+            new Notification(n.titulo, {
+              body: n.corpo,
+              icon: "/icon-192.png",
+              badge: "/icon-192.png",
+              tag: n.id,
+            });
+          }
+        }, delay);
+      }
+    });
+  },
+
+  async init() {
+    if (Notification.permission === "granted") {
+      await this.registrarSW();
+      this.agendarNotificacoes();
+      return "ativo";
+    }
+    return Notification.permission;
+  }
+};
+
+
 const SUPABASE_URL = "https://infqprbswnjtzontvuez.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImluZnFwcmJzd25qdHpvbnR2dWV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODM3MTQsImV4cCI6MjA5MjM1OTcxNH0.T9cxiCbMzsA-vb9O016_VjMPQY4sBxiIT0rg2UkQDaM";
 
@@ -180,18 +249,18 @@ function LoginScreen() {
 
 const TEMAS = {
   escuro: {
-    bg: "#1C1E24", surface: "#24262E", surface2: "#2C2F38", surface3: "#343740",
-    border: "#3A3D48", border2: "#46495A",
+    bg: "#2A2D35", surface: "#32363F", surface2: "#3A3E48", surface3: "#424650",
+    border: "#4A4E5A", border2: "#565A68",
     amber: "#F0A500", amberDim: "rgba(240,165,0,0.10)", amberGlow: "rgba(240,165,0,0.06)",
     teal: "#2DD4BF", tealDim: "rgba(45,212,191,0.10)",
     rose: "#FB7185", roseDim: "rgba(251,113,133,0.10)",
     indigo: "#818CF8", indigoDim: "rgba(129,140,248,0.10)",
-    text: "#F0F2F8", text2: "#9098B8", text3: "#5A6080",
-    navInativo: "#6870A0",
-    gradCard: "linear-gradient(145deg, #26282F 0%, #222530 100%)",
-    gradHeader: "linear-gradient(180deg, #242630 0%, #1E2028 100%)",
-    gradNav: "linear-gradient(0deg, #1A1C22 0%, #22242C 100%)",
-    shadowCard: "0 2px 12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.04)",
+    text: "#F0F2F8", text2: "#A0A8C0", text3: "#6870A0",
+    navInativo: "#7880A8",
+    gradCard: "linear-gradient(145deg, #34373F 0%, #2E3139 100%)",
+    gradHeader: "linear-gradient(180deg, #32363F 0%, #2E3139 100%)",
+    gradNav: "linear-gradient(0deg, #282B32 0%, #30343C 100%)",
+    shadowCard: "0 2px 12px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.04)",
     shadowAmber: "0 0 20px rgba(240,165,0,0.08)",
   },
   claro: {
@@ -224,15 +293,20 @@ const PRINCIPIOS = [
   { frase: "Comportamento enraizado não muda com uma conversa. Muda com evidência, com tempo e com alguém que acredita na transformação antes da própria pessoa acreditar.", cap: "Capítulo 4 — Feedback" },
 ];
 
-const CHECKIN_FULL = [
+// ── PERGUNTAS DE PERFIL (uma vez só) ──
+const PERFIL_QUESTIONS = [
   { id: "nome", emoji: "◉", title: "Qual seu nome e cargo?", sub: "Como podemos te chamar?", placeholder: "Ex: Mariana, Head of CS" },
   { id: "empresa", emoji: "◈", title: "Onde você trabalha e qual o tamanho do seu time?", sub: "Empresa e contexto da operação", placeholder: "Ex: Startup SaaS B2B, time de 8 pessoas em 3 frentes" },
-  { id: "metricas", emoji: "◆", title: "Quais são seus números atuais?", sub: "NPS, churn, CSAT, MRR — o que você tiver", placeholder: "Ex: NPS 38, churn 3.2%, CSAT 4.1, MRR expansão R$24k" },
+  { id: "estilo", emoji: "◎", title: "Como você se descreve como líder?", sub: "Seu estilo, pontos fortes e desafios recorrentes", placeholder: "Ex: Sou direta, prefiro autonomia no time, tenho dificuldade com conversas difíceis..." },
+  { id: "cultura", emoji: "◑", title: "Como é a cultura da sua empresa?", sub: "Valores, jeito de trabalhar — cole aqui se quiser", placeholder: "Ex: Startup em crescimento, cultura de ownership, feedback direto, velocidade sobre perfeição..." },
+];
+
+// ── PERGUNTAS SEMANAIS ──
+const CHECKIN_FULL = [
+  { id: "metricas", emoji: "◆", title: "Quais são seus números essa semana?", sub: "NPS, churn, CSAT, MRR — o que você tiver", placeholder: "Ex: NPS 38, churn 3.2%, CSAT 4.1, MRR expansão R$24k" },
   { id: "semana", emoji: "◇", title: "Como está sua semana?", sub: "O que está acontecendo, o que está pesando mais", placeholder: "Ex: QBR na quinta com 3 contas em risco, time sobrecarregado..." },
   { id: "desafio", emoji: "▷", title: "Qual seu maior desafio de liderança agora?", sub: "Com o time, processos ou stakeholders", placeholder: "Ex: Preciso dar um feedback difícil para meu CS sênior que não está entregando..." },
   { id: "prioridade", emoji: "✦", title: "Se você pudesse resolver uma coisa essa semana, o que seria?", sub: "O que, se resolvido, muda o jogo", placeholder: "Ex: Fechar as renovações em aberto antes do fim do mês..." },
-  { id: "estilo", emoji: "◎", title: "Como você se descreve como líder?", sub: "Seu estilo, seus pontos fortes e seus maiores desafios recorrentes", placeholder: "Ex: Sou muito direta, prefiro autonomia no time, tenho dificuldade com conversas difíceis e tendência a resolver tudo sozinha..." },
-  { id: "cultura", emoji: "◑", title: "Como é a cultura da sua empresa?", sub: "Valores, jeito de trabalhar, código de conduta — cole aqui se quiser", placeholder: "Ex: Empresa de alto crescimento, cultura de ownership, feedback direto, foco em resultado. Valorizamos transparência e velocidade sobre perfeição..." },
 ];
 
 const CHECKIN_UPDATE = [
@@ -662,6 +736,14 @@ const ResultBox = ({ text, modulo = "", promptOriginal = "" }) => {
           {copied ? "✓ Copiado!" : "📋 Copiar"}
         </button>
 
+        <button onClick={() => {
+          const evento = new CustomEvent("abrirComunidade", { detail: { contexto: text.substring(0, 200) } });
+          window.dispatchEvent(evento);
+        }}
+          style={{ background: "none", border: `1px solid ${V.indigo}40`, color: V.indigo, cursor: "pointer", fontSize: 12, fontFamily: "inherit", padding: "6px 12px", borderRadius: 7 }}>
+          ◑ Comunidade
+        </button>
+
         <div style={{ flex: 1 }} />
 
         {/* Avaliação */}
@@ -861,6 +943,91 @@ function PrincipioDaSemana() {
 }
 
 // ── CHECKIN ──
+// ── CONFIGURAÇÃO DE PERFIL (uma vez só) ──
+function PerfilSetup({ onComplete, dadosExistentes }) {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState({
+    nome: dadosExistentes?.perfil?.nome || "",
+    empresa: dadosExistentes?.perfil?.empresa || "",
+    estilo: dadosExistentes?.estiloLideranca || "",
+    cultura: dadosExistentes?.culturaEmpresa || "",
+  });
+  const [curr, setCurr] = useState(dadosExistentes?.perfil?.nome || "");
+  const [processing, setProcessing] = useState(false);
+
+  const q = PERFIL_QUESTIONS[step];
+  const progress = ((step + 1) / PERFIL_QUESTIONS.length) * 100;
+
+  const next = () => {
+    if (!curr.trim()) { alert("Responda antes de continuar."); return; }
+    const newA = { ...answers, [q.id]: curr };
+    setAnswers(newA);
+    if (step < PERFIL_QUESTIONS.length - 1) {
+      setStep(s => s + 1);
+      setCurr(answers[PERFIL_QUESTIONS[step + 1]?.id] || "");
+    } else {
+      setProcessing(true);
+      setTimeout(() => {
+        onComplete({
+          perfilConfigurado: true,
+          perfil: { nome: newA.nome || "", empresa: newA.empresa || "" },
+          estiloLideranca: newA.estilo || "",
+          culturaEmpresa: newA.cultura || "",
+        });
+        setProcessing(false);
+      }, 500);
+    }
+  };
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ textAlign: "center", padding: "20px 0 24px" }}>
+        <div style={{ width: 48, height: 48, background: `linear-gradient(135deg, #F5A800, #C8880A)`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontFamily: "monospace", color: "#080A0F", margin: "0 auto 14px", boxShadow: "0 4px 16px rgba(240,165,0,0.25)" }}>◎</div>
+        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Configure seu perfil</div>
+        <div style={{ fontSize: 12, color: V.text2, lineHeight: 1.6 }}>Feito uma vez só. O Vela usa isso para personalizar todas as respostas para você.</div>
+      </div>
+
+      {/* Progress */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+          <span style={{ fontSize: 10, color: V.text2, fontWeight: 600 }}>Perfil · {step + 1}/{PERFIL_QUESTIONS.length}</span>
+          <span style={{ fontSize: 10, color: V.amber, fontWeight: 700 }}>{Math.round(progress)}%</span>
+        </div>
+        <div style={{ height: 3, background: V.surface3, borderRadius: 2 }}>
+          <div style={{ height: "100%", background: `linear-gradient(90deg, ${V.amber}, #F5C842)`, borderRadius: 2, width: `${progress}%`, transition: "width 0.4s" }} />
+        </div>
+      </div>
+
+      {/* Pergunta */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: V.amberDim, border: `1px solid ${V.amber}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: V.amber, marginBottom: 14, fontFamily: "monospace" }}>{q.emoji}</div>
+        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{q.title}</div>
+        <div style={{ fontSize: 12, color: V.text2, lineHeight: 1.5 }}>{q.sub}</div>
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <VoiceTextArea value={curr} onChange={e => setCurr(e.target.value)} rows={4} placeholder={q.placeholder} />
+      </div>
+
+      <div style={{ display: "flex", gap: 10 }}>
+        {step > 0 && (
+          <BtnSecondary onClick={() => { setStep(s => s - 1); setCurr(answers[PERFIL_QUESTIONS[step - 1].id] || ""); }}>←</BtnSecondary>
+        )}
+        <BtnPrimary onClick={next} loading={processing} style={{ flex: 1 }}>
+          {step < PERFIL_QUESTIONS.length - 1 ? "Salvar e continuar →" : "✦ Concluir configuração"}
+        </BtnPrimary>
+      </div>
+
+      {step > 0 && (
+        <div style={{ marginTop: 14, padding: "10px 12px", background: V.tealDim, border: `1px solid ${V.teal}25`, borderRadius: 9 }}>
+          <div style={{ fontSize: 11, color: V.teal, fontWeight: 600 }}>✓ {step} {step === 1 ? "resposta salva" : "respostas salvas"}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
   const [modo, setModo] = useState(null);
   const [step, setStep] = useState(0);
@@ -870,8 +1037,6 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
   const [transcript, setTranscript] = useState("");
   const [recState, setRecState] = useState("idle");
   const recognitionRef = useRef(null);
-  const [estiloCheckin, setEstiloCheckin] = useState(dadosExistentes?.estiloLideranca || LS.get("checkin_estilo", ""));
-  const [culturaCheckin, setCulturaCheckin] = useState(dadosExistentes?.culturaEmpresa || LS.get("checkin_cultura", ""));
 
   const QUESTIONS = isUpdate ? CHECKIN_UPDATE : CHECKIN_FULL;
   const q = QUESTIONS[step];
@@ -880,15 +1045,16 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
   const buildDados = (resps) => {
     const metrics = parseMetrics(resps.metricas);
     return {
-      perfil: { nome: resps.nome || "", empresa: resps.empresa || "" },
+      ...dadosExistentes,
+      perfil: dadosExistentes?.perfil || { nome: "", empresa: "" },
       metricas: { nps: metrics.nps, churn: metrics.churn, csat: metrics.csat, mrr: metrics.mrr },
       contextoSemana: resps.semana || "",
       desafioLideranca: resps.desafio || "",
       prioridade: resps.prioridade || "",
       rawMetricas: resps.metricas || "",
       tarefasMatriz: gerarTarefas(resps.semana, resps.prioridade, resps.desafio),
-      estiloLideranca: estiloCheckin || resps.estilo || "",
-      culturaEmpresa: culturaCheckin || resps.cultura || "",
+      estiloLideranca: dadosExistentes?.estiloLideranca || "",
+      culturaEmpresa: dadosExistentes?.culturaEmpresa || "",
     };
   };
 
@@ -950,18 +1116,11 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
     if (!text?.trim()) return;
     setProcessing(true);
     const resps = {
-      nome: text.match(/(?:me chamo|sou (?:a |o )?|meu nome é\s*)([A-Za-zÀ-ú]+)/i)?.[1] || "Líder CS",
-      empresa: text.match(/(?:trabalho (?:na|em|no)\s*)([^,.]+)/i)?.[1] || "",
       metricas: text,
       semana: text.substring(0, 200),
       desafio: text.match(/(?:desafio|feedback|problema|dificuldade)[^.!?]*/i)?.[0] || text.substring(0, 100),
       prioridade: text.match(/(?:prioridade|resolver|focar)[^.!?]*/i)?.[0] || text.substring(0, 80),
-      estilo: estiloCheckin,
-      cultura: culturaCheckin,
     };
-    // Salva estilo e cultura no localStorage imediatamente
-    if (estiloCheckin) LS.set("checkin_estilo", estiloCheckin);
-    if (culturaCheckin) LS.set("checkin_cultura", culturaCheckin);
     setTimeout(() => { onComplete(buildDados(resps)); setProcessing(false); }, 800);
   };
 
@@ -969,21 +1128,16 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
     <div>
       <div style={{ textAlign: "center", padding: "8px 0 20px" }}>
         <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 24, fontWeight: 700, marginBottom: 10, letterSpacing: -0.5 }}>
-          {isUpdate ? "Check-out semanal" : "Bem-vindo ao"} <span style={{ color: V.amber }}>{isUpdate ? "" : "Vela"}</span>
+          {isUpdate ? "Atualizar" : "Contexto da"} <span style={{ color: V.amber }}>{isUpdate ? "contexto" : "semana"}</span>
         </div>
-        {isUpdate ? (
-          <div style={{ padding: "12px 16px", background: V.tealDim, border: `1px solid ${V.teal}25`, borderRadius: 10, marginBottom: 4 }}>
-            <div style={{ fontSize: 12, color: V.teal, fontWeight: 700, marginBottom: 4 }}>Atualização semanal</div>
-            <div style={{ color: V.text2, fontSize: 12, lineHeight: 1.7 }}>Feito para ser rápido — 4 perguntas para atualizar seus números e contexto da semana.</div>
+        <div style={{ padding: "12px 16px", background: V.tealDim, border: `1px solid ${V.teal}25`, borderRadius: 10, marginBottom: 4 }}>
+          <div style={{ fontSize: 12, color: V.teal, fontWeight: 700, marginBottom: 4 }}>
+            {isUpdate ? "Atualização semanal" : "Contexto semanal"}
           </div>
-        ) : (
-          <div>
-            <div style={{ padding: "12px 16px", background: V.amberGlow, border: `1px solid ${V.amber}20`, borderRadius: 10, marginBottom: 8 }}>
-              <div style={{ fontSize: 12, color: V.amber, fontWeight: 700, marginBottom: 4 }}>Configuração inicial — feita uma vez</div>
-              <div style={{ color: V.text2, fontSize: 12, lineHeight: 1.7 }}>Vamos entender quem você é. Com isso, todos os módulos ficam personalizados para o seu contexto.</div>
-            </div>
+          <div style={{ color: V.text2, fontSize: 12, lineHeight: 1.7 }}>
+            {QUESTIONS.length} perguntas rápidas sobre seus números e o que está acontecendo essa semana.
           </div>
-        )}
+        </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
@@ -1002,46 +1156,6 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
         ))}
       </div>
 
-      {!isUpdate && (
-        <div style={{ borderTop: `1px solid ${V.border}`, paddingTop: 20 }}>
-          <div style={{ background: `linear-gradient(135deg, rgba(240,165,0,0.06), rgba(240,165,0,0.02))`, border: `1px solid rgba(240,165,0,0.15)`, borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
-            <div style={{ fontSize: 11, color: V.amber, fontWeight: 700, marginBottom: 4, letterSpacing: "0.5px" }}>✦ Personaliza todas as respostas do Vela</div>
-            <div style={{ fontSize: 11, color: V.text2, lineHeight: 1.6 }}>Quanto mais contexto você der sobre seu estilo e sua empresa, mais específicas ficam as análises.</div>
-          </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <span style={{ color: V.amber, fontFamily: "monospace", fontSize: 16 }}>◎</span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: V.text }}>Meu estilo de liderança</div>
-                <div style={{ fontSize: 11, color: V.text2 }}>Como você lidera, pontos fortes, desafios recorrentes</div>
-              </div>
-            </div>
-            <VoiceTextArea
-              value={estiloCheckin}
-              onChange={e => { setEstiloCheckin(e.target.value); LS.set("checkin_estilo", e.target.value); }}
-              rows={3}
-              placeholder="Ex: Sou direta, prefiro dar autonomia antes de intervir. Ponto forte: estruturar processos. Dificuldade: conversas de confronto..."
-            />
-          </div>
-
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <span style={{ color: V.indigo, fontFamily: "monospace", fontSize: 16 }}>◈</span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: V.text }}>Cultura da empresa</div>
-                <div style={{ fontSize: 11, color: V.text2 }}>Valores, jeito de trabalhar, contexto do negócio</div>
-              </div>
-            </div>
-            <VoiceTextArea
-              value={culturaCheckin}
-              onChange={e => { setCulturaCheckin(e.target.value); LS.set("checkin_cultura", e.target.value); }}
-              rows={3}
-              placeholder="Ex: Startup B2B SaaS em crescimento, cultura de ownership, feedback direto, velocidade sobre perfeição..."
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -1052,7 +1166,7 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
         <SectionLabel>Modo áudio</SectionLabel>
         <PageTitle accent="sua semana">Fale sobre</PageTitle>
         <div style={{ color: V.text2, fontSize: 12, lineHeight: 1.7, maxWidth: 280, margin: "8px auto 0" }}>
-          Fale naturalmente: nome, cargo, métricas, o que está pesando, desafios de liderança e prioridades.
+          Fale naturalmente: métricas, o que está pesando, desafios de liderança e prioridades.
         </div>
       </div>
 
@@ -1162,40 +1276,49 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
 }
 
 // ── HOME ──
-function HomePage({ dados, onCheckin, onUpdate, onNav }) {
-  const temDados = !!dados;
+function HomePage({ dados, onUpdate, onNav, notifStatus, onPedirNotif }) {
+  const temContextoSemana = !!(dados?.contextoSemana || dados?.rawMetricas);
+  const [ctx, setCtx] = useState(dados?.contextoSemana || "");
+  const [tipoSemana, setTipoSemana] = useState(() => LS.get("matriz_tipo", "normal"));
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [expandido, setExpandido] = useState(!temContextoSemana);
+
   return (
     <div>
-      <div style={{ padding: "4px 0 20px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+      {/* Header */}
+      <div style={{ padding: "4px 0 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <div style={{ width: 38, height: 38, background: `linear-gradient(135deg, ${V.amber}, #D4920A)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontFamily: "monospace", color: "#0C0E14", fontWeight: 700 }}>◎</div>
           <div>
-            <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 700, letterSpacing: -0.3 }}>Vela</div>
-            <div style={{ fontSize: 9, color: V.text2, letterSpacing: "1px", textTransform: "uppercase" }}>Copiloto do líder de CS/CX</div>
+            <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 700, letterSpacing: -0.3 }}>
+              Olá, <span style={{ color: V.amber }}>{dados?.perfil?.nome?.split(",")[0]?.trim() || "Líder"}</span>
+            </div>
+            <div style={{ fontSize: 9, color: V.text2, letterSpacing: "1px", textTransform: "uppercase" }}>{dados?.perfil?.empresa?.split(",")[0] || "CS/CX"}</div>
           </div>
         </div>
-
-        {temDados ? (
-          <div style={{ marginBottom: 4 }}>
-            <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 20, fontWeight: 700, letterSpacing: -0.5, marginBottom: 4 }}>
-              Olá, <span style={{ color: V.amber }}>{dados.perfil?.nome?.split(",")[0]?.trim() || "Líder"}</span>
-            </div>
-            <div style={{ color: V.text2, fontSize: 12 }}>{dados.perfil?.empresa?.split(",")[0] || "CS/CX"}</div>
-          </div>
-        ) : (
-          <div>
-            <SectionLabel>Seu copiloto</SectionLabel>
-            <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 22, fontWeight: 700, letterSpacing: -0.8, marginBottom: 4 }}>Lidere com mais</div>
-            <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 22, fontWeight: 700, color: V.amber, marginBottom: 8 }}>clareza.</div>
-            <div style={{ color: V.text2, fontSize: 13, lineHeight: 1.7 }}>Para líderes de CS e CX em startups. Menos operação, mais estratégia.</div>
-          </div>
-        )}
       </div>
 
       <PrincipioDaSemana />
 
-      {temDados && dados.metricas && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
+      {/* Banner de notificações */}
+      {notifStatus === "idle" && "Notification" in window && (
+        <div style={{ marginBottom: 14, padding: "13px 16px", background: `linear-gradient(135deg, rgba(129,140,248,0.08), rgba(129,140,248,0.03))`, border: `1px solid rgba(129,140,248,0.2)`, borderRadius: 12, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 20 }}>🔔</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: V.indigo, marginBottom: 2 }}>Ativar lembretes</div>
+            <div style={{ fontSize: 11, color: V.text2, lineHeight: 1.5 }}>Receba lembretes estratégicos para liderar melhor toda semana.</div>
+          </div>
+          <button onClick={onPedirNotif}
+            style={{ background: V.indigo, color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+            Ativar
+          </button>
+        </div>
+      )}
+
+      {/* Métricas se tiver contexto */}
+      {temContextoSemana && dados?.metricas && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
           {[
             { l: "NPS", v: dados.metricas.nps, c: dados.metricas.nps >= 40 ? V.amber : V.rose },
             { l: "Churn", v: `${dados.metricas.churn}%`, c: dados.metricas.churn <= 3 ? V.teal : V.rose },
@@ -1209,63 +1332,106 @@ function HomePage({ dados, onCheckin, onUpdate, onNav }) {
         </div>
       )}
 
-      {!temDados ? (
-        <BtnPrimary onClick={onCheckin}>✦ Fazer check-in e começar</BtnPrimary>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-          {[
-            { icon: "◆", label: "Cockpit", sub: "Analisar indicador", id: "cockpit", color: V.amber },
-            { icon: "◇", label: "Prioridades", sub: `${(dados.tarefasMatriz?.do?.length || 0)} urgentes`, id: "matriz", color: V.teal },
-            { icon: "▷", label: "Feedback", sub: dados.desafioLideranca ? "Pré-preenchido" : "Aguardando", id: "feedback", color: V.indigo },
-            { icon: "⚡", label: "Gestão de Crise", sub: "Diagnóstico rápido", id: "crise", color: V.rose },
-            { icon: "✦", label: "Narrativa", sub: dados.rawMetricas ? "Dados prontos" : "Aguardando", id: "narrativa", color: V.amber },
-          ].map(m => (
-            <button key={m.id} onClick={() => onNav(m.id)}
-              style={{ background: V.surface, border: `1px solid ${V.border}`, borderRadius: 13, padding: "15px 13px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "border-color 0.2s" }}>
-              <div style={{ fontSize: 20, color: m.color, fontFamily: "monospace", marginBottom: 7 }}>{m.icon}</div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: V.text, marginBottom: 3 }}>{m.label}</div>
-              <div style={{ fontSize: 11, color: m.sub.includes("Pré") ? V.teal : V.text2 }}>{m.sub}</div>
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Contexto semanal integrado */}
+      <div style={{ marginBottom: 14 }}>
+        <button onClick={() => setExpandido(e => !e)}
+          style={{ width: "100%", background: expandido ? `linear-gradient(135deg, rgba(240,165,0,0.08), rgba(240,165,0,0.03))` : V.surface, border: `1px solid ${expandido ? "rgba(240,165,0,0.2)" : V.border}`, borderRadius: 14, padding: "13px 16px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12, marginBottom: expandido ? 0 : 0 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: expandido ? V.amberDim : V.tealDim, display: "flex", alignItems: "center", justifyContent: "center", color: expandido ? V.amber : V.teal, fontFamily: "monospace", fontSize: 15 }}>◈</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: V.text, marginBottom: 1 }}>
+              {temContextoSemana ? "Contexto da semana" : "Como está sua semana?"}
+            </div>
+            <div style={{ fontSize: 11, color: V.text2 }}>
+              {temContextoSemana ? "Toque para atualizar" : "Preencha para personalizar as análises"}
+            </div>
+          </div>
+          <span style={{ color: V.text3, fontSize: 16 }}>{expandido ? "↑" : "↓"}</span>
+        </button>
 
-      {temDados && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
-          <button onClick={onUpdate}
-            style={{ background: V.surface, border: `1px solid ${V.border}`, borderRadius: 12, padding: "13px 15px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: V.tealDim, display: "flex", alignItems: "center", justifyContent: "center", color: V.teal, fontFamily: "monospace", fontSize: 16 }}>◈</div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: V.text, marginBottom: 2 }}>Check-out semanal</div>
-              <div style={{ fontSize: 11, color: V.text2 }}>Atualizar métricas e contexto</div>
+        {expandido && (
+          <div style={{ background: V.surface, border: `1px solid ${V.border}`, borderTop: "none", borderRadius: "0 0 14px 14px", padding: "16px" }}>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 12 }}>
+                {[
+                  { v: "estrategico", l: "🧘 Calma" },
+                  { v: "normal", l: "⚡ Normal" },
+                  { v: "atarefado", l: "🔥 Cheia" },
+                  { v: "crise", l: "🚨 Em crise" },
+                ].map(o => (
+                  <button key={o.v} onClick={() => { setTipoSemana(o.v); LS.set("matriz_tipo", o.v); }}
+                    style={{ padding: "10px 8px", border: `1.5px solid ${tipoSemana === o.v ? V.amber : V.border}`, borderRadius: 10, background: tipoSemana === o.v ? V.amberDim : V.surface2, color: tipoSemana === o.v ? V.amber : V.text2, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", textAlign: "center" }}>
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+              <VoiceTextArea value={ctx} onChange={e => { setCtx(e.target.value); }} rows={3}
+                placeholder="O que está acontecendo? O que está pesando mais essa semana?" />
             </div>
+            <BtnPrimary onClick={async () => {
+              if (!ctx.trim()) { alert("Descreva como está sua semana primeiro."); return; }
+              setLoading(true);
+              try {
+                const r = await gerarPriorizacao({ ...dados, contextoSemana: ctx }, "medio", "crescendo", tipoSemana);
+                setResult(r);
+                // Salva o contexto
+                const novo = { ...dados, contextoSemana: ctx };
+                LS.set("dados", novo);
+                setExpandido(false);
+                salvarNoHistorico("semana", ctx, r);
+              } catch (e) { setResult("Erro ao gerar. Verifique sua conexão."); }
+              setLoading(false);
+            }} loading={loading}>✦ Analisar minha semana</BtnPrimary>
+
+            {result && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ background: `linear-gradient(145deg, rgba(240,165,0,0.04), rgba(8,10,15,0.8))`, border: `1px solid rgba(240,165,0,0.18)`, borderLeft: `2px solid ${V.amber}`, borderRadius: 12, padding: 16 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: V.amber, letterSpacing: "2px", textTransform: "uppercase", marginBottom: 10 }}>✦ Sua semana</div>
+                  <MarkdownText text={result} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Módulos */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        {[
+          { icon: "◆", label: "Cockpit", sub: "Analisar indicador", id: "cockpit", color: V.amber },
+          { icon: "◇", label: "Prioridades", sub: "Análise estratégica", id: "matriz", color: V.teal },
+          { icon: "▷", label: "Feedback", sub: dados?.desafioLideranca ? "Pré-preenchido" : "Estruturar conversa", id: "feedback", color: V.indigo },
+          { icon: "⚡", label: "Gestão de Crise", sub: "Diagnóstico rápido", id: "crise", color: V.rose },
+          { icon: "✦", label: "Narrativa", sub: "Para diretoria", id: "narrativa", color: V.amber },
+          { icon: "◑", label: "Comunidade", sub: "Líderes CS/CX", id: "comunidade", color: V.indigo },
+        ].map(m => (
+          <button key={m.id} onClick={() => onNav(m.id)}
+            style={{ background: V.surface, border: `1px solid ${V.border}`, borderRadius: 13, padding: "15px 13px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "border-color 0.2s" }}>
+            <div style={{ fontSize: 20, color: m.color, fontFamily: "monospace", marginBottom: 7 }}>{m.icon}</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: V.text, marginBottom: 3 }}>{m.label}</div>
+            <div style={{ fontSize: 11, color: m.sub.includes("Pré") ? V.teal : V.text2 }}>{m.sub}</div>
           </button>
-          <button onClick={() => onNav("historico")}
-            style={{ background: V.surface, border: `1px solid ${V.border}`, borderRadius: 12, padding: "13px 15px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: V.indigoDim, display: "flex", alignItems: "center", justifyContent: "center", color: V.indigo, fontFamily: "monospace", fontSize: 15 }}>◑</div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: V.text, marginBottom: 2 }}>Histórico de análises</div>
-              <div style={{ fontSize: 11, color: V.text2 }}>{LS.get("vela_historico", []).length} análises salvas</div>
-            </div>
-          </button>
-          <button onClick={() => onNav("perfil")}
-            style={{ background: V.surface, border: `1px solid ${V.border}`, borderRadius: 12, padding: "13px 15px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: V.amberDim, display: "flex", alignItems: "center", justifyContent: "center", color: V.amber, fontFamily: "monospace", fontSize: 15 }}>◎</div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: V.text, marginBottom: 2 }}>Meu perfil de liderança</div>
-              <div style={{ fontSize: 11, color: dados?.estiloLideranca ? V.teal : V.text2 }}>{dados?.estiloLideranca ? "✓ Configurado" : "Personalizar respostas"}</div>
-            </div>
-          </button>
-          <button onClick={onCheckin}
-            style={{ background: "transparent", border: `1px solid ${V.border}`, borderRadius: 12, padding: "11px 15px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: V.surface3, display: "flex", alignItems: "center", justifyContent: "center", color: V.text2, fontFamily: "monospace", fontSize: 15 }}>◉</div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: V.text, marginBottom: 2 }}>Refazer check-in completo</div>
-              <div style={{ fontSize: 11, color: V.text2 }}>Reconfigurar tudo do zero</div>
-            </div>
-          </button>
-        </div>
-      )}
+        ))}
+      </div>
+
+      {/* Links secundários */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <button onClick={() => onNav("historico")}
+          style={{ background: V.surface, border: `1px solid ${V.border}`, borderRadius: 12, padding: "12px 15px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: V.indigoDim, display: "flex", alignItems: "center", justifyContent: "center", color: V.indigo, fontFamily: "monospace", fontSize: 14 }}>◑</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: V.text, marginBottom: 1 }}>Histórico de análises</div>
+            <div style={{ fontSize: 11, color: V.text2 }}>{LS.get("vela_historico", []).length} análises salvas</div>
+          </div>
+        </button>
+        <button onClick={() => onNav("perfil")}
+          style={{ background: V.surface, border: `1px solid ${V.border}`, borderRadius: 12, padding: "12px 15px", cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: V.amberDim, display: "flex", alignItems: "center", justifyContent: "center", color: V.amber, fontFamily: "monospace", fontSize: 14 }}>◎</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: V.text, marginBottom: 1 }}>Meu perfil</div>
+            <div style={{ fontSize: 11, color: V.teal }}>✓ Estilo, empresa, notificações</div>
+          </div>
+        </button>
+      </div>
 
       <div style={{ textAlign: "center", marginTop: 20, paddingTop: 16, borderTop: `1px solid ${V.border}` }}>
         <button onClick={() => { if (window.confirm("Limpar todos os dados do Vela?")) { LS.clear(); window.location.reload(); } }}
@@ -1298,12 +1464,23 @@ function PerfilPage({ dados, onBack, onSave }) {
   const [estilo, setEstilo] = useState(dados?.estiloLideranca || "");
   const [cultura, setCultura] = useState(dados?.culturaEmpresa || "");
   const [saved, setSaved] = useState(false);
+  const [notifVela, setNotifVela] = useState(() => LS.get("notif_vela", true));
+  const [notifComunidade, setNotifComunidade] = useState(() => LS.get("notif_comunidade", false));
 
   const salvar = () => {
     onSave({ estiloLideranca: estilo, culturaEmpresa: cultura });
+    LS.set("notif_vela", notifVela);
+    LS.set("notif_comunidade", notifComunidade);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
+
+  const Toggle = ({ value, onChange }) => (
+    <button onClick={() => onChange(!value)}
+      style={{ width: 44, height: 24, borderRadius: 12, background: value ? V.teal : V.surface3, border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+      <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 3, left: value ? 23 : 3, transition: "left 0.2s" }} />
+    </button>
+  );
 
   return (
     <div>
@@ -1332,7 +1509,357 @@ function PerfilPage({ dados, onBack, onSave }) {
           placeholder="Ex: Empresa de alto crescimento com cultura de ownership. Valorizamos transparência radical, velocidade sobre perfeição e feedback direto. Líderes são esperados a desenvolver seus times e não criar dependência..." />
       </Card>
 
+      {/* Notificações */}
+      <Card>
+        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>🔔 Notificações</div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${V.border}` }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: V.text, marginBottom: 2 }}>Lembretes do Vela</div>
+            <div style={{ fontSize: 11, color: V.text2, lineHeight: 1.5 }}>Segunda, quarta e sexta — dicas estratégicas de liderança</div>
+          </div>
+          <Toggle value={notifVela} onChange={setNotifVela} />
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: V.text, marginBottom: 2 }}>Comunidade</div>
+            <div style={{ fontSize: 11, color: V.text2, lineHeight: 1.5 }}>Respostas às suas perguntas e novidades da comunidade</div>
+          </div>
+          <Toggle value={notifComunidade} onChange={setNotifComunidade} />
+        </div>
+      </Card>
+
       <BtnPrimary onClick={salvar}>{saved ? "✓ Salvo!" : "✦ Salvar perfil"}</BtnPrimary>
+    </div>
+  );
+}
+
+// ── COMUNIDADE ──
+const ADMIN_EMAIL = "jessicapriscilla56@gmail.com";
+const TAGS_COMUNIDADE = ["Time", "Feedback", "Churn", "Stakeholders", "Prioridades", "Carreira", "Crise", "Outro"];
+
+function ComunidadePage({ dados, user }) {
+  const [perguntas, setPerguntas] = useState(() => LS.get("comunidade_perguntas", []));
+  const [view, setView] = useState("lista"); // lista | nova | detalhe | admin
+  const [perguntaSelecionada, setPerguntaSelecionada] = useState(null);
+  const [novaResposta, setNovaResposta] = useState("");
+  const [loadingResposta, setLoadingResposta] = useState(false);
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
+  // Nova pergunta
+  const [novaPergunta, setNovaPergunta] = useState({ titulo: "", contexto: "", tag: "Time", anonimo: true });
+  const [enviando, setEnviando] = useState(false);
+
+  const salvarPerguntas = (novas) => {
+    setPerguntas(novas);
+    LS.set("comunidade_perguntas", novas);
+  };
+
+  const enviarPergunta = () => {
+    if (!novaPergunta.titulo.trim()) { alert("Adicione um título para sua pergunta."); return; }
+    setEnviando(true);
+    const nova = {
+      id: Date.now(),
+      titulo: novaPergunta.titulo,
+      contexto: novaPergunta.contexto,
+      tag: novaPergunta.tag,
+      anonimo: novaPergunta.anonimo,
+      autorNome: novaPergunta.anonimo ? null : (dados?.perfil?.nome?.split(",")[0] || "Líder"),
+      autorCargo: dados?.perfil?.nome?.split(",")[1]?.trim() || "Líder de CS/CX",
+      autorTime: dados?.perfil?.empresa ? `Time de ${dados.perfil.empresa.match(/\d+/)?.[0] || "?"} pessoas` : "CS/CX",
+      status: "pendente", // pendente | aprovada | rejeitada
+      respostas: [],
+      curtidas: [],
+      criadoEm: new Date().toISOString(),
+      velaRespondeu: false,
+    };
+    const atualizadas = [nova, ...perguntas];
+    salvarPerguntas(atualizadas);
+    setNovaPergunta({ titulo: "", contexto: "", tag: "Time", anonimo: true });
+    setEnviando(false);
+    setView("lista");
+    alert("Pergunta enviada! Será publicada após moderação.");
+  };
+
+  const responder = async (perguntaId) => {
+    if (!novaResposta.trim()) return;
+    setLoadingResposta(true);
+    const resposta = {
+      id: Date.now(),
+      texto: novaResposta,
+      anonimo: false,
+      autorNome: dados?.perfil?.nome?.split(",")[0] || "Líder",
+      autorCargo: dados?.perfil?.nome?.split(",")[1]?.trim() || "Líder de CS/CX",
+      curtidas: [],
+      criadoEm: new Date().toISOString(),
+      isVela: false,
+    };
+    const atualizadas = perguntas.map(p => p.id === perguntaId ? { ...p, respostas: [...p.respostas, resposta] } : p);
+    salvarPerguntas(atualizadas);
+    setPerguntaSelecionada(atualizadas.find(p => p.id === perguntaId));
+    setNovaResposta("");
+    setLoadingResposta(false);
+  };
+
+  const responderComVela = async (pergunta) => {
+    setLoadingResposta(true);
+    try {
+      const prompt = `${SISTEMA}
+
+CONTEXTO: Você está respondendo uma pergunta na comunidade de líderes de CS/CX do Vela. Responda de forma humana, empática e prática, como se fosse uma mentora experiente de liderança CS/CX. Use os frameworks do livro Liderança Customer Centric quando relevante. Máximo 200 palavras.
+
+PERGUNTA: "${pergunta.titulo}"
+CONTEXTO DA PERGUNTA: "${pergunta.contexto}"
+TAG: ${pergunta.tag}
+
+Responda diretamente, sem introdução genérica. Seja específica e acionável.`;
+
+      const texto = await chamarClaude(prompt);
+      const respostaVela = {
+        id: Date.now(),
+        texto,
+        anonimo: false,
+        autorNome: "Vela",
+        autorCargo: "Copiloto de Liderança",
+        curtidas: [],
+        criadoEm: new Date().toISOString(),
+        isVela: true,
+      };
+      const atualizadas = perguntas.map(p =>
+        p.id === pergunta.id ? { ...p, respostas: [...p.respostas, respostaVela], velaRespondeu: true } : p
+      );
+      salvarPerguntas(atualizadas);
+      setPerguntaSelecionada(atualizadas.find(p => p.id === pergunta.id));
+    } catch (e) { alert("Erro ao gerar resposta."); }
+    setLoadingResposta(false);
+  };
+
+  const curtirResposta = (perguntaId, respostaId) => {
+    const userId = user?.id || "anonimo";
+    const atualizadas = perguntas.map(p => {
+      if (p.id !== perguntaId) return p;
+      return {
+        ...p, respostas: p.respostas.map(r => {
+          if (r.id !== respostaId) return r;
+          const jaCurtiu = r.curtidas.includes(userId);
+          return { ...r, curtidas: jaCurtiu ? r.curtidas.filter(id => id !== userId) : [...r.curtidas, userId] };
+        }).sort((a, b) => b.curtidas.length - a.curtidas.length)
+      };
+    });
+    salvarPerguntas(atualizadas);
+    setPerguntaSelecionada(atualizadas.find(p => p.id === perguntaId));
+  };
+
+  const aprovar = (id) => {
+    const atualizadas = perguntas.map(p => p.id === id ? { ...p, status: "aprovada" } : p);
+    salvarPerguntas(atualizadas);
+  };
+
+  const rejeitar = (id) => {
+    const atualizadas = perguntas.filter(p => p.id !== id);
+    salvarPerguntas(atualizadas);
+  };
+
+  const aprovadas = perguntas.filter(p => p.status === "aprovada");
+  const pendentes = perguntas.filter(p => p.status === "pendente");
+
+  const formatarTempo = (iso) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(diff / 86400000);
+    if (d > 0) return `${d}d atrás`;
+    if (h > 0) return `${h}h atrás`;
+    return "agora";
+  };
+
+  // Tela de admin
+  if (view === "admin") return (
+    <div>
+      <button onClick={() => setView("lista")} style={{ background: "none", border: "none", color: V.text2, cursor: "pointer", fontSize: 13, fontFamily: "inherit", marginBottom: 16, padding: 0 }}>← Voltar</button>
+      <SectionLabel>Moderação</SectionLabel>
+      <PageTitle>Perguntas <span style={{ color: V.amber }}>pendentes</span></PageTitle>
+      {pendentes.length === 0 ? (
+        <div style={{ padding: "32px 0", textAlign: "center", color: V.text2, fontSize: 13 }}>Nenhuma pergunta pendente ✓</div>
+      ) : pendentes.map(p => (
+        <Card key={p.id}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ background: V.amberDim, color: V.amber, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6 }}>{p.tag}</span>
+            <span style={{ fontSize: 10, color: V.text2 }}>{formatarTempo(p.criadoEm)}</span>
+          </div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: V.text, marginBottom: 6 }}>{p.titulo}</div>
+          {p.contexto && <div style={{ fontSize: 12, color: V.text2, lineHeight: 1.6, marginBottom: 12 }}>{p.contexto}</div>}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => aprovar(p.id)}
+              style={{ flex: 1, background: V.teal, color: "#080A0F", border: "none", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              ✓ Aprovar
+            </button>
+            <button onClick={() => rejeitar(p.id)}
+              style={{ flex: 1, background: V.roseDim, color: V.rose, border: `1px solid ${V.rose}30`, borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              ✕ Rejeitar
+            </button>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+
+  // Tela de nova pergunta
+  if (view === "nova") return (
+    <div>
+      <button onClick={() => setView("lista")} style={{ background: "none", border: "none", color: V.text2, cursor: "pointer", fontSize: 13, fontFamily: "inherit", marginBottom: 16, padding: 0 }}>← Voltar</button>
+      <SectionLabel>Comunidade</SectionLabel>
+      <PageTitle>Nova <span style={{ color: V.amber }}>pergunta</span></PageTitle>
+
+      <Card>
+        <div style={{ marginBottom: 14 }}>
+          <Label>Título da pergunta</Label>
+          <VoiceTextArea value={novaPergunta.titulo} onChange={e => setNovaPergunta(p => ({ ...p, titulo: e.target.value }))} rows={2}
+            placeholder="Ex: Como dar feedback para alguém que reage mal à crítica?" />
+        </div>
+        <div style={{ marginBottom: 14 }}>
+          <Label>Contexto (opcional)</Label>
+          <VoiceTextArea value={novaPergunta.contexto} onChange={e => setNovaPergunta(p => ({ ...p, contexto: e.target.value }))} rows={3}
+            placeholder="Dê mais detalhes sobre a situação. Quanto mais contexto, melhores as respostas." />
+        </div>
+        <div style={{ marginBottom: 14 }}>
+          <Label>Categoria</Label>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {TAGS_COMUNIDADE.map(t => (
+              <button key={t} onClick={() => setNovaPergunta(p => ({ ...p, tag: t }))}
+                style={{ padding: "7px 12px", border: `1.5px solid ${novaPergunta.tag === t ? V.amber : V.border}`, borderRadius: 20, background: novaPergunta.tag === t ? V.amberDim : V.surface2, color: novaPergunta.tag === t ? V.amber : V.text2, cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginBottom: 16, padding: "12px 14px", background: V.surface2, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: V.text, marginBottom: 2 }}>Postar anonimamente</div>
+            <div style={{ fontSize: 11, color: V.text2 }}>Aparece como "Líder de CS · Time de X pessoas"</div>
+          </div>
+          <button onClick={() => setNovaPergunta(p => ({ ...p, anonimo: !p.anonimo }))}
+            style={{ width: 44, height: 24, borderRadius: 12, background: novaPergunta.anonimo ? V.teal : V.surface3, border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s" }}>
+            <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 3, left: novaPergunta.anonimo ? 23 : 3, transition: "left 0.2s" }} />
+          </button>
+        </div>
+        <BtnPrimary onClick={enviarPergunta} loading={enviando}>✦ Enviar pergunta</BtnPrimary>
+      </Card>
+    </div>
+  );
+
+  // Tela de detalhe
+  if (view === "detalhe" && perguntaSelecionada) {
+    const p = perguntaSelecionada;
+    const semRespostas = p.respostas.length === 0;
+    return (
+      <div>
+        <button onClick={() => setView("lista")} style={{ background: "none", border: "none", color: V.text2, cursor: "pointer", fontSize: 13, fontFamily: "inherit", marginBottom: 16, padding: 0 }}>← Voltar</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <span style={{ background: V.amberDim, color: V.amber, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6 }}>{p.tag}</span>
+          <span style={{ fontSize: 11, color: V.text2 }}>{p.anonimo ? `Líder de CS · ${p.autorTime}` : `${p.autorNome} · ${p.autorCargo}`}</span>
+        </div>
+        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 700, marginBottom: 8, lineHeight: 1.4 }}>{p.titulo}</div>
+        {p.contexto && <div style={{ fontSize: 13, color: V.text2, lineHeight: 1.7, marginBottom: 16 }}>{p.contexto}</div>}
+
+        <div style={{ borderTop: `1px solid ${V.border}`, paddingTop: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: V.text2, marginBottom: 12 }}>{p.respostas.length} {p.respostas.length === 1 ? "resposta" : "respostas"}</div>
+
+          {semRespostas && !p.velaRespondeu && (
+            <div style={{ padding: "14px", background: V.amberGlow, border: `1px solid ${V.amber}20`, borderRadius: 10, marginBottom: 14, fontSize: 12, color: V.text2, lineHeight: 1.6 }}>
+              Seja a primeira a responder! Se ninguém responder em 24h, o Vela traz uma sugestão.
+            </div>
+          )}
+
+          {p.respostas.map(r => (
+            <div key={r.id} style={{ marginBottom: 14, padding: "14px", background: r.isVela ? `linear-gradient(135deg, rgba(240,165,0,0.06), rgba(240,165,0,0.02))` : V.surface2, border: `1px solid ${r.isVela ? `rgba(240,165,0,0.2)` : V.border}`, borderRadius: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: r.isVela ? `linear-gradient(135deg, #F5A800, #C8880A)` : V.surface3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: r.isVela ? 12 : 11, color: r.isVela ? "#080A0F" : V.text2, fontFamily: "monospace", fontWeight: 700 }}>
+                  {r.isVela ? "◎" : r.autorNome?.[0] || "L"}
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: r.isVela ? V.amber : V.text }}>{r.isVela ? "Vela" : (r.anonimo ? "Líder anônima" : r.autorNome)}</div>
+                  <div style={{ fontSize: 10, color: V.text2 }}>{r.isVela ? "Copiloto de Liderança" : r.autorCargo} · {formatarTempo(r.criadoEm)}</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 13, color: V.text, lineHeight: 1.7, marginBottom: 10 }}>{r.texto}</div>
+              <button onClick={() => curtirResposta(p.id, r.id)}
+                style={{ background: r.curtidas.includes(user?.id) ? V.tealDim : "transparent", border: `1px solid ${r.curtidas.includes(user?.id) ? V.teal : V.border}`, borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", fontSize: 11, color: r.curtidas.includes(user?.id) ? V.teal : V.text2, display: "flex", alignItems: "center", gap: 5 }}>
+                ↑ {r.curtidas.length > 0 ? r.curtidas.length : ""} útil
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {isAdmin && semRespostas && !p.velaRespondeu && (
+          <button onClick={() => responderComVela(p)} disabled={loadingResposta}
+            style={{ width: "100%", background: V.amberDim, border: `1px solid ${V.amber}30`, color: V.amber, borderRadius: 10, padding: "11px", fontFamily: "inherit", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 10 }}>
+            {loadingResposta ? "⏳ Gerando..." : "◎ Responder com o Vela"}
+          </button>
+        )}
+
+        <div style={{ marginTop: 8 }}>
+          <Label>Sua resposta</Label>
+          <VoiceTextArea value={novaResposta} onChange={e => setNovaResposta(e.target.value)} rows={3}
+            placeholder="Compartilhe sua experiência ou perspectiva..." />
+          <div style={{ marginTop: 10 }}>
+            <BtnPrimary onClick={() => responder(p.id)} loading={loadingResposta} disabled={!novaResposta.trim()}>
+              ✦ Publicar resposta
+            </BtnPrimary>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Lista principal
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <div>
+          <SectionLabel>Comunidade</SectionLabel>
+          <PageTitle>Líderes <span style={{ color: V.amber }}>CS/CX</span></PageTitle>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {isAdmin && pendentes.length > 0 && (
+            <button onClick={() => setView("admin")}
+              style={{ background: V.roseDim, border: `1px solid ${V.rose}30`, color: V.rose, borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>
+              ⚠ {pendentes.length} pendente{pendentes.length > 1 ? "s" : ""}
+            </button>
+          )}
+          <button onClick={() => setView("nova")}
+            style={{ background: `linear-gradient(135deg, #F5A800, #C8880A)`, color: "#080A0F", border: "none", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontFamily: "'Playfair Display', Georgia, serif", fontSize: 13, fontWeight: 700 }}>
+            + Pergunta
+          </button>
+        </div>
+      </div>
+
+      <div style={{ color: V.text2, fontSize: 12, lineHeight: 1.6, marginBottom: 16 }}>
+        Um espaço para líderes de CS/CX trocarem experiências reais. Anônimo ou identificado — você escolhe.
+      </div>
+
+      {aprovadas.length === 0 ? (
+        <div style={{ padding: "40px 20px", textAlign: "center" }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>◑</div>
+          <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 16, fontWeight: 700, marginBottom: 8 }}>A comunidade está começando</div>
+          <div style={{ fontSize: 13, color: V.text2, lineHeight: 1.7, marginBottom: 20 }}>Seja a primeira a trazer uma pergunta ou desafio. Outros líderes vão responder com experiência real.</div>
+          <BtnPrimary onClick={() => setView("nova")}>✦ Fazer primeira pergunta</BtnPrimary>
+        </div>
+      ) : aprovadas.map(p => (
+        <Card key={p.id} onClick={() => { setPerguntaSelecionada(p); setView("detalhe"); }} style={{ cursor: "pointer" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ background: V.amberDim, color: V.amber, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6 }}>{p.tag}</span>
+            <span style={{ fontSize: 11, color: V.text2 }}>{p.anonimo ? `Líder de CS · ${p.autorTime}` : `${p.autorNome} · ${p.autorCargo}`}</span>
+            <span style={{ fontSize: 10, color: V.text3, marginLeft: "auto" }}>{formatarTempo(p.criadoEm)}</span>
+          </div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: V.text, marginBottom: 6, lineHeight: 1.4 }}>{p.titulo}</div>
+          {p.contexto && <div style={{ fontSize: 12, color: V.text2, lineHeight: 1.6, marginBottom: 8 }}>{p.contexto.substring(0, 100)}{p.contexto.length > 100 ? "..." : ""}</div>}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: V.text2 }}>
+            <span>💬 {p.respostas.length} {p.respostas.length === 1 ? "resposta" : "respostas"}</span>
+            {p.velaRespondeu && <span style={{ color: V.amber }}>◎ Vela respondeu</span>}
+          </div>
+        </Card>
+      ))}
     </div>
   );
 }
@@ -1589,117 +2116,54 @@ function CockpitPage({ dados }) {
 
 // ── MATRIZ ──
 function MatrizPage({ dados }) {
-  const [tasks, setTasks] = useState(() => LS.get("matriz_tasks", { do: [], sc: [], de: [], el: [] }));
-  const [input, setInput] = useState("");
-  const [quad, setQuad] = useState("do");
-  const [ctx, setCtx] = useState(() => LS.get("matriz_ctx", ""));
+  const [ctx, setCtx] = useState(() => LS.get("matriz_ctx", dados?.contextoSemana || ""));
   const [tipoSemana, setTipoSemana] = useState(() => LS.get("matriz_tipo", "normal"));
   const [tamanhoTime, setTamanhoTime] = useState(() => LS.get("matriz_time", "medio"));
   const [momentoEmpresa, setMomentoEmpresa] = useState(() => LS.get("matriz_momento", "crescendo"));
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
-  const [seeded, setSeeded] = useState(false);
 
   useEffect(() => {
-    if (dados?.tarefasMatriz && !seeded) {
-      const saved = LS.get("matriz_tasks", null);
-      if (!saved || (saved.do.length === 0 && saved.sc.length === 0)) {
-        setTasks(dados.tarefasMatriz);
-        LS.set("matriz_tasks", dados.tarefasMatriz);
-      }
-      setSeeded(true);
-    }
     if (dados?.contextoSemana && !LS.get("matriz_ctx", "")) {
       setCtx(dados.contextoSemana);
       LS.set("matriz_ctx", dados.contextoSemana);
     }
   }, [dados]);
 
-  const updateTasks = (newTasks) => { setTasks(newTasks); LS.set("matriz_tasks", newTasks); };
   const updateCtx = (v) => { setCtx(v); LS.set("matriz_ctx", v); };
-  const updateTipoSemana = (v) => { setTipoSemana(v); LS.set("matriz_tipo", v); };
-  const updateTamanhoTime = (v) => { setTamanhoTime(v); LS.set("matriz_time", v); };
-  const updateMomento = (v) => { setMomentoEmpresa(v); LS.set("matriz_momento", v); };
-
-  const addTask = () => {
-    if (!input.trim()) return;
-    const newTasks = { ...tasks, [quad]: [...tasks[quad], input.trim()] };
-    updateTasks(newTasks);
-    setInput("");
-  };
-
-  const quads = [
-    { key: "do", label: "Fazer agora", icon: "✦", sub: "Urgente + Importante", color: V.amber },
-    { key: "sc", label: "Programar", icon: "◇", sub: "Importante, não urgente", color: V.teal },
-    { key: "de", label: "Delegar", icon: "▷", sub: "Urgente, não importante", color: V.indigo },
-    { key: "el", label: "Eliminar", icon: "◈", sub: "Nem urgente nem importante", color: V.text3 },
-  ];
 
   return (
     <div>
       <SectionLabel>Priorização</SectionLabel>
       <PageTitle accent="Movimentos">Próximos</PageTitle>
-      {seeded && <div style={{ marginBottom: 16, fontSize: 11, color: V.teal }}>◈ Tarefas sugeridas com base no seu check-in</div>}
-
-      <Card style={{ padding: 14 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <Input value={input} onChange={e => setInput(e.target.value)} placeholder="Nova tarefa..."
-            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTask(); } }} />
-          <div style={{ display: "flex", gap: 8 }}>
-            <Sel value={quad} onChange={e => setQuad(e.target.value)} style={{ flex: 1 }}>
-              {quads.map(q => <option key={q.key} value={q.key}>{q.icon} {q.label}</option>)}
-            </Sel>
-            <button onClick={addTask} style={{ background: `linear-gradient(135deg, ${V.amber}, #D4920A)`, color: "#0C0E14", border: "none", borderRadius: 9, padding: "12px 16px", cursor: "pointer", fontFamily: "'Playfair Display', Georgia, serif", fontSize: 14, fontWeight: 700 }}>+ Add</button>
-          </div>
-        </div>
-      </Card>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-        {quads.map(q => (
-          <div key={q.key} style={{ background: V.surface, border: `1px solid ${V.border}`, borderTop: `2px solid ${q.color}`, borderRadius: 13, padding: 13, minHeight: 130 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
-              <span style={{ color: q.color, fontFamily: "monospace", fontSize: 13 }}>{q.icon}</span>
-              <span style={{ fontSize: 9, fontWeight: 700, color: q.color, letterSpacing: "0.5px", textTransform: "uppercase" }}>{q.label}</span>
-            </div>
-            <div style={{ fontSize: 9, color: V.text2, marginBottom: 10 }}>{q.sub}</div>
-            {tasks[q.key].length === 0 && <div style={{ fontSize: 10, color: V.text3, fontStyle: "italic" }}>Vazio</div>}
-            {tasks[q.key].map((t, i) => (
-              <div key={i} style={{ display: "flex", gap: 5, padding: "6px 8px", borderRadius: 7, background: V.surface2, marginBottom: 5, fontSize: 11, color: V.text, lineHeight: 1.4, border: `1px solid ${V.border}` }}>
-                <span style={{ flex: 1 }}>{t}</span>
-                <button onClick={() => { const n = { ...tasks, [q.key]: tasks[q.key].filter((_, j) => j !== i) }; updateTasks(n); }}
-                  style={{ background: "none", border: "none", color: V.text3, cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
-              </div>
-            ))}
-          </div>
-        ))}
+      <div style={{ color: V.text2, fontSize: 12, marginBottom: 18, lineHeight: 1.7 }}>
+        Baseado no seu contexto, o Vela identifica o que é urgente, o que é importante e o que você pode delegar ou eliminar essa semana.
       </div>
 
       <Card>
-        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 15, marginBottom: 3 }}>Análise estratégica da semana</div>
-        <div style={{ color: V.text2, fontSize: 11, marginBottom: 14 }}>Quanto mais contexto, mais específica a recomendação.</div>
         {dados?.contextoSemana && <PreBadge />}
 
-        <div style={{ marginBottom: 13 }}>
+        <div style={{ marginBottom: 14 }}>
           <Label>Como está essa semana?</Label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7, marginBottom: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 8 }}>
             {[
               { v: "estrategico", l: "🧘 Semana calma" },
               { v: "normal", l: "⚡ Semana normal" },
               { v: "atarefado", l: "🔥 Semana cheia" },
               { v: "crise", l: "🚨 Em crise" },
-            ].slice(0, 4).map(o => (
-              <button key={o.v} onClick={() => updateTipoSemana(o.v)}
-                style={{ padding: "9px 6px", border: `1.5px solid ${tipoSemana === o.v ? V.amber : V.border}`, borderRadius: 9, background: tipoSemana === o.v ? V.amberDim : V.surface2, color: tipoSemana === o.v ? V.amber : V.text2, cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: "inherit", textAlign: "center" }}>
+            ].map(o => (
+              <button key={o.v} onClick={() => { setTipoSemana(o.v); LS.set("matriz_tipo", o.v); }}
+                style={{ padding: "12px 8px", border: `1.5px solid ${tipoSemana === o.v ? V.amber : V.border}`, borderRadius: 10, background: tipoSemana === o.v ? V.amberDim : V.surface2, color: tipoSemana === o.v ? V.amber : V.text2, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", textAlign: "center" }}>
                 {o.l}
               </button>
             ))}
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 13 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
           <div>
             <Label>Tamanho do time</Label>
-            <Sel value={tamanhoTime} onChange={e => updateTamanhoTime(e.target.value)}>
+            <Sel value={tamanhoTime} onChange={e => { setTamanhoTime(e.target.value); LS.set("matriz_time", e.target.value); }}>
               <option value="pequeno">Até 5 pessoas</option>
               <option value="medio">6 a 15 pessoas</option>
               <option value="grande">Mais de 15</option>
@@ -1707,7 +2171,7 @@ function MatrizPage({ dados }) {
           </div>
           <div>
             <Label>Momento da empresa</Label>
-            <Sel value={momentoEmpresa} onChange={e => updateMomento(e.target.value)}>
+            <Sel value={momentoEmpresa} onChange={e => { setMomentoEmpresa(e.target.value); LS.set("matriz_momento", e.target.value); }}>
               <option value="early">Early stage</option>
               <option value="crescendo">Crescendo</option>
               <option value="escalando">Escalando</option>
@@ -1715,10 +2179,10 @@ function MatrizPage({ dados }) {
           </div>
         </div>
 
-        <div style={{ marginBottom: 14 }}>
-          <Label>Contexto da semana</Label>
-          <VoiceTextArea value={ctx} onChange={e => updateCtx(e.target.value)} rows={3}
-            placeholder="O que está acontecendo? O que está pesando mais? Quais são as principais demandas?" />
+        <div style={{ marginBottom: 16 }}>
+          <Label>O que está na sua cabeça essa semana?</Label>
+          <VoiceTextArea value={ctx} onChange={e => updateCtx(e.target.value)} rows={4}
+            placeholder="O que está pesando? Quais são as principais demandas? Tem alguma coisa que você está adiando? Quanto mais contexto, mais específica a análise." />
         </div>
 
         <BtnPrimary onClick={async () => {
@@ -1729,9 +2193,17 @@ function MatrizPage({ dados }) {
             salvarNoHistorico("matriz", ctx || "Priorização semanal", r);
           } catch (e) { setResult("Erro ao gerar. Verifique sua conexão."); }
           setLoading(false);
-        }} loading={loading}>✦ Receber recomendação estratégica</BtnPrimary>
+        }} loading={loading}>✦ Analisar e priorizar minha semana</BtnPrimary>
         <ResultBox text={result} modulo="matriz" />
       </Card>
+
+      {result && (
+        <div style={{ padding: "12px 14px", background: V.surface2, border: `1px solid ${V.border}`, borderRadius: 10, marginTop: 8 }}>
+          <div style={{ fontSize: 11, color: V.text2, lineHeight: 1.6 }}>
+            🗓 <span style={{ color: V.text }}>Em breve:</span> integração com Google Agenda para bloquear automaticamente os tempos prioritários na sua semana.
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2056,6 +2528,7 @@ const NAV = [
   { id: "feedback", icon: "▷", label: "Feedback" },
   { id: "crise", icon: "⚡", label: "Crise" },
   { id: "narrativa", icon: "✦", label: "Narrativa" },
+  { id: "comunidade", icon: "◑", label: "Comunidade" },
 ];
 
 export default function App() {
@@ -2065,6 +2538,7 @@ export default function App() {
   const [tema, setTema] = useState(() => LS.get("tema", "escuro"));
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [notifStatus, setNotifStatus] = useState("idle");
 
   // Autenticação
   useEffect(() => {
@@ -2074,22 +2548,29 @@ export default function App() {
         const u = await sb.getUser(token);
         if (u) {
           setUser(u);
-          // Migra dados do localStorage para o Supabase se existirem
           const dadosLocal = LS.get("dados", null);
-          if (dadosLocal) {
-            await sb.salvarDados(u.id, "dados", dadosLocal);
-          }
-          // Carrega dados do Supabase
+          if (dadosLocal) await sb.salvarDados(u.id, "dados", dadosLocal);
           const dadosRemoto = await sb.carregarDados(u.id, "dados");
-          if (dadosRemoto) {
-            setDados(dadosRemoto);
-            LS.set("dados", dadosRemoto);
-          }
+          if (dadosRemoto) { setDados(dadosRemoto); LS.set("dados", dadosRemoto); }
         }
       }
       setAuthLoading(false);
     };
     init();
+  }, []);
+
+  // Inicia notificações se já tiver permissão
+  useEffect(() => {
+    if (user) {
+      notifManager.init().then(status => setNotifStatus(status));
+    }
+  }, [user]);
+
+  // Listener para abrir comunidade a partir dos módulos
+  useEffect(() => {
+    const handler = () => { setPage("comunidade"); LS.set("page", "comunidade"); };
+    window.addEventListener("abrirComunidade", handler);
+    return () => window.removeEventListener("abrirComunidade", handler);
   }, []);
 
   // Atualiza V globalmente quando tema muda
@@ -2126,14 +2607,37 @@ export default function App() {
 
   if (!user) return <LoginScreen />;
 
+  // Se não tem perfil configurado, mostra setup de perfil primeiro
+  if (!dados?.perfilConfigurado) {
+    return (
+      <div style={{ background: V.bg, color: V.text, fontFamily: "'DM Sans', system-ui, sans-serif", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px" }}>
+          <PerfilSetup onComplete={async (perfilData) => {
+            const novo = { ...dados, ...perfilData };
+            setDados(novo);
+            LS.set("dados", novo);
+            if (user) await sb.salvarDados(user.id, "dados", novo);
+          }} dadosExistentes={dados} />
+          <div style={{ height: 40 }} />
+        </div>
+      </div>
+    );
+  }
+
   const pageMap = {
-    home: <HomePage dados={dados} onCheckin={() => setOverlay("checkin")} onUpdate={() => setOverlay("update")} onNav={handleNav} />,
+    home: <HomePage dados={dados} onUpdate={() => setOverlay("update")} onNav={handleNav} notifStatus={notifStatus} onPedirNotif={async () => {
+      const ok = await notifManager.pedirPermissao();
+      if (ok) { await notifManager.registrarSW(); notifManager.agendarNotificacoes(); setNotifStatus("ativo"); }
+      else setNotifStatus("negado");
+    }} />,
     cockpit: <CockpitPage dados={dados} />,
     matriz: <MatrizPage dados={dados} />,
     feedback: <FeedbackPage dados={dados} />,
     crise: <CrisePage dados={dados} />,
     narrativa: <NarrativaPage dados={dados} />,
     historico: <HistoricoPage onBack={() => handleNav("home")} />,
+    comunidade: <ComunidadePage dados={dados} user={user} />,
     perfil: <PerfilPage dados={dados} onBack={() => handleNav("home")} onSave={(updates) => {
       const novo = { ...dados, ...updates };
       setDados(novo);
