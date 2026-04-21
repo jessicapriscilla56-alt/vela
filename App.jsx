@@ -870,8 +870,8 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
   const [transcript, setTranscript] = useState("");
   const [recState, setRecState] = useState("idle");
   const recognitionRef = useRef(null);
-  const [estiloCheckin, setEstiloCheckin] = useState(dadosExistentes?.estiloLideranca || "");
-  const [culturaCheckin, setCulturaCheckin] = useState(dadosExistentes?.culturaEmpresa || "");
+  const [estiloCheckin, setEstiloCheckin] = useState(dadosExistentes?.estiloLideranca || LS.get("checkin_estilo", ""));
+  const [culturaCheckin, setCulturaCheckin] = useState(dadosExistentes?.culturaEmpresa || LS.get("checkin_cultura", ""));
 
   const QUESTIONS = isUpdate ? CHECKIN_UPDATE : CHECKIN_FULL;
   const q = QUESTIONS[step];
@@ -956,7 +956,12 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
       semana: text.substring(0, 200),
       desafio: text.match(/(?:desafio|feedback|problema|dificuldade)[^.!?]*/i)?.[0] || text.substring(0, 100),
       prioridade: text.match(/(?:prioridade|resolver|focar)[^.!?]*/i)?.[0] || text.substring(0, 80),
+      estilo: estiloCheckin,
+      cultura: culturaCheckin,
     };
+    // Salva estilo e cultura no localStorage imediatamente
+    if (estiloCheckin) LS.set("checkin_estilo", estiloCheckin);
+    if (culturaCheckin) LS.set("checkin_cultura", culturaCheckin);
     setTimeout(() => { onComplete(buildDados(resps)); setProcessing(false); }, 800);
   };
 
@@ -1014,7 +1019,7 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
             </div>
             <VoiceTextArea
               value={estiloCheckin}
-              onChange={e => setEstiloCheckin(e.target.value)}
+              onChange={e => { setEstiloCheckin(e.target.value); LS.set("checkin_estilo", e.target.value); }}
               rows={3}
               placeholder="Ex: Sou direta, prefiro dar autonomia antes de intervir. Ponto forte: estruturar processos. Dificuldade: conversas de confronto..."
             />
@@ -1030,7 +1035,7 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
             </div>
             <VoiceTextArea
               value={culturaCheckin}
-              onChange={e => setCulturaCheckin(e.target.value)}
+              onChange={e => { setCulturaCheckin(e.target.value); LS.set("checkin_cultura", e.target.value); }}
               rows={3}
               placeholder="Ex: Startup B2B SaaS em crescimento, cultura de ownership, feedback direto, velocidade sobre perfeição..."
             />
@@ -1070,13 +1075,19 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
           {transcript && (
             <Card style={{ marginBottom: 14, borderColor: `${V.teal}30` }}>
               <div style={{ fontSize: 10, color: V.teal, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 8 }}>Transcrição</div>
-              <div style={{ fontSize: 13, color: V.text, lineHeight: 1.7, maxHeight: 100, overflowY: "auto", fontStyle: "italic" }}>"{transcript}"</div>
+              <div style={{ fontSize: 13, color: V.text, lineHeight: 1.7, maxHeight: 120, overflowY: "auto", fontStyle: "italic" }}>"{transcript}"</div>
+              <div style={{ fontSize: 10, color: V.text2, marginTop: 8 }}>Você pode editar o texto acima antes de salvar</div>
             </Card>
           )}
           {recState === "done" && transcript && (
-            <BtnPrimary onClick={() => processText(transcript)} loading={processing}>✦ Preencher tudo automaticamente</BtnPrimary>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <BtnPrimary onClick={() => processText(transcript)} loading={processing}>✦ Salvar e continuar</BtnPrimary>
+              <BtnSecondary onClick={() => { setTranscript(""); setRecState("idle"); }}>Gravar novamente</BtnSecondary>
+            </div>
           )}
-          <div style={{ textAlign: "center", color: V.text3, fontSize: 11, margin: "16px 0 10px" }}>— ou digite abaixo —</div>
+          {recState === "idle" && !transcript && (
+            <div style={{ textAlign: "center", color: V.text3, fontSize: 11, margin: "16px 0 10px" }}>— ou digite abaixo —</div>
+          )}
         </>
       )}
 
@@ -1085,7 +1096,7 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
         <VoiceTextArea value={transcript} onChange={e => setTranscript(e.target.value)} rows={5}
           placeholder="Ex: Oi, sou a Mariana, Head of CS na Startup X. Time de 8 pessoas. NPS 38, churn 3.2%. Semana difícil — QBR na quinta com 3 contas em risco e preciso dar um feedback difícil para meu CS sênior..." />
       </div>
-      {transcript && <BtnPrimary onClick={() => processText(transcript)} loading={processing}>✦ Preencher tudo automaticamente</BtnPrimary>}
+      {transcript && recState !== "done" && <BtnPrimary onClick={() => processText(transcript)} loading={processing}>✦ Salvar e continuar</BtnPrimary>}
       <style>{`@keyframes pulse{0%,100%{transform:scale(1);opacity:0.3}50%{transform:scale(1.1);opacity:0.1}}`}</style>
     </div>
   );
@@ -2185,10 +2196,10 @@ export default function App() {
       </div>
 
       {/* Nav */}
-      <div style={{ background: V.gradNav || V.surface, borderTop: `1px solid ${V.border}`, display: "flex", flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 8px)" }}>
+      <div style={{ background: V.gradNav || V.surface, borderTop: `1px solid ${V.border}`, display: "flex", flexShrink: 0, paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)" }}>
         {NAV.map(n => (
           <button key={n.id} onClick={() => handleNav(n.id)}
-            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, padding: "10px 2px 8px", background: "none", border: "none", color: page === n.id ? V.amber : V.navInativo, cursor: "pointer", fontFamily: "monospace", borderTop: page === n.id ? `1.5px solid ${V.amber}` : "1.5px solid transparent", transition: "color 0.2s", position: "relative" }}>
+            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, padding: "12px 2px 10px", background: "none", border: "none", color: page === n.id ? V.amber : V.navInativo, cursor: "pointer", fontFamily: "monospace", borderTop: page === n.id ? `1.5px solid ${V.amber}` : "1.5px solid transparent", transition: "color 0.2s", position: "relative" }}>
             {page === n.id && <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 24, height: 1, background: V.amber, borderRadius: 1, boxShadow: "0 0 8px rgba(240,165,0,0.6)" }} />}
             <span style={{ fontSize: 16, lineHeight: 1, transition: "transform 0.2s", transform: page === n.id ? "scale(1.1)" : "scale(1)" }}>{n.icon}</span>
             <span style={{ fontSize: 9, fontWeight: page === n.id ? 700 : 500, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.3px" }}>{n.label}</span>
