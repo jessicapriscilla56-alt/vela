@@ -2,14 +2,19 @@ import { useState, useRef, useEffect } from "react";
 
 const TEMAS = {
   escuro: {
-    bg: "#0C0E14", surface: "#13151E", surface2: "#1A1D29", surface3: "#212535",
-    border: "#2A2E40", border2: "#363B52",
+    bg: "#080A0F", surface: "#0E1018", surface2: "#141720", surface3: "#1C2030",
+    border: "#1E2235", border2: "#2A3050",
     amber: "#F0A500", amberDim: "rgba(240,165,0,0.10)", amberGlow: "rgba(240,165,0,0.05)",
     teal: "#2DD4BF", tealDim: "rgba(45,212,191,0.10)",
     rose: "#FB7185", roseDim: "rgba(251,113,133,0.10)",
     indigo: "#818CF8", indigoDim: "rgba(129,140,248,0.10)",
-    text: "#F0F2F8", text2: "#8890B0", text3: "#4A5070",
-    navInativo: "#8890B0",
+    text: "#EEF0FA", text2: "#7880A8", text3: "#3A4060",
+    navInativo: "#50587A",
+    gradCard: "linear-gradient(145deg, #0E1018 0%, #111420 100%)",
+    gradHeader: "linear-gradient(180deg, #0E1018 0%, #0C0E16 100%)",
+    gradNav: "linear-gradient(0deg, #0A0C14 0%, #0E1018 100%)",
+    shadowCard: "0 2px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03)",
+    shadowAmber: "0 0 20px rgba(240,165,0,0.08)",
   },
   claro: {
     bg: "#F5F5F0", surface: "#FFFFFF", surface2: "#F0EFE8", surface3: "#E8E7DF",
@@ -225,23 +230,52 @@ Com base na Matriz de Eisenhower aplicada à liderança de CS/CX, estruture os 3
 async function gerarAnaliseIndicador(indicador, foco, dados) {
   const focoMap = { churn: "Churn (taxa de cancelamento)", nps: "NPS (Net Promoter Score)", csat: "CSAT (satisfação por interação)", expansao: "Expansão de receita (MRR expansion)", onboarding: "Onboarding (ativação de clientes)", retencao: "Retenção (renovações e permanência)" };
 
+  const segmentacaoNPS = `
+METODOLOGIA DE ANÁLISE DE NPS:
+- Nunca analise o NPS como um número único — identifique onde está concentrado o problema
+- Segmentações prioritárias: por momento do ciclo de vida (0-90 dias, 6m, 1 ano+), por decisor vs usuário operacional, por responsável de CS, por região ou segmento
+- NEUTROS são a maior oportunidade: converter neutro em promotor é muito mais eficiente do que converter detrator. Aponte ações específicas para os neutros.
+- Detratores raramente viram promotores — foco em estabilizar e entender a causa raiz`;
+
+  const segmentacaoChurn = `
+METODOLOGIA DE ANÁLISE DE CHURN:
+- Sempre categorize por motivo: financeiro, engajamento do sócio, engajamento da equipe, problema de produto, questão pessoal/interna do cliente
+- Identifique em qual momento do ciclo de vida o churn está concentrado — isso revela se é problema de onboarding, de valor ou de relacionamento
+- Use os padrões encontrados para antecipar quais novos contratos vão precisar de atenção maior desde o início
+- Micro ações são mais eficazes do que uma ação grande — sugira 3 a 5 ações pequenas e específicas`;
+
+  const metodologia = foco === "nps" ? segmentacaoNPS : foco === "churn" ? segmentacaoChurn : "";
+
+  const temPlanilha = indicador.includes("DADOS DO ARQUIVO");
+
   const prompt = `${getSistema(dados)}
 
 MÓDULO: Cockpit — Análise de Indicador
 
 INDICADOR: ${focoMap[foco] || foco}
+${metodologia}
 
 SITUAÇÃO DESCRITA PELO LÍDER:
 "${indicador}"
 
-Analise essa situação do ponto de vista de liderança de CS/CX. Inclua:
-1. Diagnóstico — o que o indicador está revelando de verdade (vá além do óbvio)
-2. Causas prováveis — as 3 mais comuns para esse cenário específico
-3. Onde focar o tempo agora — o que o líder deveria fazer nos próximos 7 dias
-4. Micro-processo para essa semana — uma ação concreta e específica
-5. Pergunta estratégica — uma pergunta que o líder deveria se fazer
+${temPlanilha ? "O líder subiu uma planilha com dados reais. Analise os dados disponíveis e identifique padrões, concentrações e segmentações que o líder provavelmente não está vendo." : ""}
 
-Seja específico ao que foi descrito. Não dê respostas genéricas sobre o indicador — responda ao contexto real.`;
+Estruture a resposta assim:
+
+✦ DIAGNÓSTICO
+O que está acontecendo de verdade — vá além do óbvio.
+
+✦ SEGMENTAÇÕES QUE REVELAM MAIS
+Quais recortes mostrariam onde está concentrado o problema. ${temPlanilha ? "Use os dados da planilha para identificar padrões reais." : "Oriente o líder sobre quais dados coletar para segmentar melhor."}
+
+✦ MICRO AÇÕES PRIORITÁRIAS
+3 a 5 ações pequenas e específicas, ordenadas por impacto. Cada uma com: o quê, com quem, em quanto tempo.
+
+✦ ATENÇÃO PARA NOVOS CONTRATOS
+Com base nos padrões, quais perfis de cliente vão precisar de atenção redobrada desde o início.
+
+✦ PERGUNTA ESTRATÉGICA
+Uma pergunta que o líder deveria se fazer essa semana.`;
 
   return await chamarClaude(prompt);
 }
@@ -272,7 +306,7 @@ function gerarFeedbackSync(desafio, sev, cargo, tempo, tipoComp, historico) {
 
 // ── COMPONENTES ──
 const Card = ({ children, style, onClick }) => (
-  <div onClick={onClick} style={{ background: V.surface, border: `1px solid ${V.border}`, borderRadius: 14, padding: 18, marginBottom: 12, cursor: onClick ? "pointer" : "default", ...style }}>{children}</div>
+  <div onClick={onClick} style={{ background: V.gradCard || V.surface, border: `1px solid ${V.border}`, borderRadius: 16, padding: 20, marginBottom: 12, cursor: onClick ? "pointer" : "default", boxShadow: V.shadowCard, transition: "border-color 0.2s, box-shadow 0.2s", ...style }}>{children}</div>
 );
 
 const SectionLabel = ({ children }) => (
@@ -377,13 +411,13 @@ const Sel = ({ children, style, ...props }) => (
 
 const BtnPrimary = ({ children, onClick, disabled, loading, style }) => (
   <button onClick={onClick} disabled={disabled || loading}
-    style={{ width: "100%", background: disabled || loading ? V.surface3 : `linear-gradient(135deg, ${V.amber}, #D4920A)`, color: disabled || loading ? V.text2 : "#0C0E14", border: "none", borderRadius: 10, padding: "14px", fontFamily: "'Playfair Display', Georgia, serif", fontSize: 15, fontWeight: 700, cursor: disabled || loading ? "not-allowed" : "pointer", transition: "all 0.2s", ...style }}>
+    style={{ width: "100%", background: disabled || loading ? V.surface3 : `linear-gradient(135deg, #F5A800, #C8880A)`, color: disabled || loading ? V.text2 : "#080A0F", border: "none", borderRadius: 12, padding: "15px", fontFamily: "'Playfair Display', Georgia, serif", fontSize: 15, fontWeight: 700, cursor: disabled || loading ? "not-allowed" : "pointer", transition: "all 0.25s", boxShadow: disabled || loading ? "none" : "0 4px 20px rgba(240,165,0,0.25), 0 1px 0 rgba(255,255,255,0.1) inset", letterSpacing: "0.2px", ...style }}>
     {loading ? "⏳ Gerando..." : children}
   </button>
 );
 
 const BtnSecondary = ({ children, onClick, style }) => (
-  <button onClick={onClick} style={{ background: "transparent", border: `1.5px solid ${V.border2}`, color: V.text2, borderRadius: 9, padding: "11px 16px", fontFamily: "inherit", fontSize: 14, cursor: "pointer", ...style }}>{children}</button>
+  <button onClick={onClick} style={{ background: "transparent", border: `1px solid ${V.border2}`, color: V.text2, borderRadius: 10, padding: "11px 16px", fontFamily: "inherit", fontSize: 14, cursor: "pointer", transition: "border-color 0.2s, color 0.2s", ...style }}>{children}</button>
 );
 
 const Pills = ({ options, value, onChange }) => (
@@ -439,8 +473,8 @@ const ResultBox = ({ text, modulo = "", promptOriginal = "" }) => {
   };
 
   return (
-    <div style={{ background: V.amberGlow, border: `1px solid ${V.amber}30`, borderLeft: `3px solid ${V.amber}`, borderRadius: 12, padding: 18, marginTop: 16 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: V.amber, letterSpacing: "2px", textTransform: "uppercase", marginBottom: 12 }}>✦ Resultado</div>
+    <div style={{ background: `linear-gradient(145deg, rgba(240,165,0,0.04) 0%, rgba(8,10,15,0.8) 100%)`, border: `1px solid rgba(240,165,0,0.18)`, borderLeft: `2px solid ${V.amber}`, borderRadius: 14, padding: 18, marginTop: 16, boxShadow: "0 4px 24px rgba(0,0,0,0.3)" }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: V.amber, letterSpacing: "2px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>✦ Resultado</div>
       <MarkdownText text={text} />
 
       {/* Ações */}
@@ -636,14 +670,14 @@ function PrincipioDaSemana() {
   const semana = Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
   const p = PRINCIPIOS[semana % PRINCIPIOS.length];
   return (
-    <div style={{ padding: "14px 16px", background: V.amberGlow, border: `1px solid ${V.amber}20`, borderRadius: 12, marginBottom: 20 }}>
-      <div style={{ fontSize: 9, fontWeight: 700, color: V.amber, letterSpacing: "2px", textTransform: "uppercase", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+    <div style={{ padding: "16px 18px", background: `linear-gradient(135deg, rgba(240,165,0,0.06) 0%, rgba(240,165,0,0.02) 100%)`, border: `1px solid rgba(240,165,0,0.15)`, borderRadius: 14, marginBottom: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.2)" }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: V.amber, letterSpacing: "2.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6, opacity: 0.85 }}>
         <span style={{ fontFamily: "monospace" }}>◈</span> Princípio da semana
       </div>
-      <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 15, fontWeight: 700, color: V.text, lineHeight: 1.5, marginBottom: 6 }}>
+      <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 15, fontWeight: 700, color: V.text, lineHeight: 1.6, marginBottom: 8, fontStyle: "italic" }}>
         "{p.frase}"
       </div>
-      <div style={{ fontSize: 10, color: V.text2 }}>— {p.cap} · Liderança Customer Centric</div>
+      <div style={{ fontSize: 10, color: V.text2, letterSpacing: "0.2px" }}>— {p.cap} · Liderança Customer Centric</div>
     </div>
   );
 }
@@ -693,27 +727,46 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
     }
   };
 
+  const activeRecRef = useRef(false);
+
   const startRec = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { setRecState("fallback"); return; }
     const r = new SR();
     r.lang = "pt-BR"; r.continuous = true; r.interimResults = false;
-    let acc = "";
     r.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) acc += e.results[i][0].transcript + " ";
+        if (e.results[i].isFinal) {
+          setTranscript(prev => prev + e.results[i][0].transcript + " ");
+        }
       }
-      setTranscript(acc);
     };
-    r.onerror = () => setRecState("fallback");
-    r.onend = () => setRecState(prev => prev === "recording" ? "done" : prev);
+    r.onerror = (e) => {
+      if (e.error === "no-speech" && activeRecRef.current) {
+        try { r.start(); } catch {}
+      } else {
+        activeRecRef.current = false;
+        setRecState("fallback");
+      }
+    };
+    r.onend = () => {
+      if (activeRecRef.current) {
+        try { r.start(); } catch {}
+      } else {
+        setRecState(prev => prev === "recording" ? "done" : prev);
+      }
+    };
     r.start();
     recognitionRef.current = r;
+    activeRecRef.current = true;
     setRecState("recording");
-    setTranscript("");
   };
 
-  const stopRec = () => { recognitionRef.current?.stop(); setRecState("done"); };
+  const stopRec = () => {
+    activeRecRef.current = false;
+    recognitionRef.current?.stop();
+    setRecState("done");
+  };
 
   const processText = (text) => {
     if (!text?.trim()) return;
@@ -846,7 +899,7 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
 
       <div style={{ marginBottom: 14 }}>
         <Label>Descreva livremente sua semana</Label>
-        <TextArea value={transcript} onChange={e => setTranscript(e.target.value)} rows={5}
+        <VoiceTextArea value={transcript} onChange={e => setTranscript(e.target.value)} rows={5}
           placeholder="Ex: Oi, sou a Mariana, Head of CS na Startup X. Time de 8 pessoas. NPS 38, churn 3.2%. Semana difícil — QBR na quinta com 3 contas em risco e preciso dar um feedback difícil para meu CS sênior..." />
       </div>
       {transcript && <BtnPrimary onClick={() => processText(transcript)} loading={processing}>✦ Preencher tudo automaticamente</BtnPrimary>}
@@ -881,17 +934,22 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <TextArea value={curr} onChange={e => setCurr(e.target.value)} rows={4} placeholder={q.placeholder}
-          onKeyDown={e => { if (e.key === "Enter" && e.metaKey) next(); }} autoFocus />
+        <VoiceTextArea value={curr} onChange={e => setCurr(e.target.value)} rows={4} placeholder={q.placeholder} />
         <div style={{ fontSize: 10, color: V.text3, marginTop: 5 }}>⌘ + Enter para avançar</div>
       </div>
 
       <div style={{ display: "flex", gap: 10 }}>
         {step > 0 && <BtnSecondary onClick={() => { setStep(s => s - 1); setCurr(answers[QUESTIONS[step - 1].id] || ""); }}>←</BtnSecondary>}
         <BtnPrimary onClick={next} loading={processing && step === QUESTIONS.length - 1} style={{ flex: 1 }}>
-          {step < QUESTIONS.length - 1 ? "Próxima →" : "✦ Preencher tudo"}
+          {step < QUESTIONS.length - 1 ? "Salvar e continuar →" : "✦ Concluir e salvar"}
         </BtnPrimary>
       </div>
+
+      {step > 0 && (
+        <div style={{ marginTop: 16, padding: "10px 12px", background: V.tealDim, border: `1px solid ${V.teal}25`, borderRadius: 9 }}>
+          <div style={{ fontSize: 11, color: V.teal, fontWeight: 600 }}>✓ {step} {step === 1 ? "resposta salva" : "respostas salvas"}</div>
+        </div>
+      )}
 
       {step > 0 && (
         <div style={{ marginTop: 22 }}>
@@ -1159,6 +1217,10 @@ function CockpitPage({ dados }) {
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [historico, setHistorico] = useState(() => LS.get("cockpit_historico", []));
+  const [arquivo, setArquivo] = useState(null);
+  const [dadosArquivo, setDadosArquivo] = useState(null);
+  const [loadingArquivo, setLoadingArquivo] = useState(false);
+  const fileRef = useRef(null);
 
   const FOCOS = [
     { value: "churn", label: "📉 Churn", desc: "Taxa de cancelamento" },
@@ -1171,16 +1233,76 @@ function CockpitPage({ dados }) {
 
   const focoAtual = FOCOS.find(f => f.value === foco);
 
+  const lerArquivo = async (file) => {
+    setLoadingArquivo(true);
+    try {
+      const ext = file.name.split(".").pop().toLowerCase();
+      let preview = "";
+
+      if (ext === "csv") {
+        const text = await file.text();
+        const linhas = text.split("\n").slice(0, 50);
+        preview = linhas.join("\n");
+      } else if (ext === "xlsx" || ext === "xls") {
+        const buffer = await file.arrayBuffer();
+        const XLSX = await import("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm");
+        const wb = XLSX.read(buffer, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const csv = XLSX.utils.sheet_to_csv(ws);
+        const linhas = csv.split("\n").slice(0, 50);
+        preview = linhas.join("\n");
+      } else if (ext === "pdf") {
+        const buffer = await file.arrayBuffer();
+        const pdfjsLib = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+        const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+        let texto = "";
+        // Extrai TODAS as páginas
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const pagTexto = content.items.map(item => item.str).join(" ");
+          texto += `\n--- Página ${i} ---\n${pagTexto}`;
+        }
+
+        // Se o PDF não tem texto extraível (escaneado), tenta OCR
+        if (texto.replace(/---.*---/g, "").trim().length < 100) {
+          const Tesseract = await import("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js");
+          let ocrTexto = "";
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement("canvas");
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+            const { data: { text } } = await Tesseract.recognize(canvas, "por");
+            ocrTexto += `\n--- Página ${i} (OCR) ---\n${text}`;
+          }
+          texto = ocrTexto;
+        }
+
+        preview = texto.substring(0, 8000);
+      }
+
+      setArquivo(file.name);
+      setDadosArquivo(preview);
+    } catch (e) {
+      alert("Erro ao ler o arquivo. Certifique-se que é um CSV, Excel ou PDF válido.");
+    }
+    setLoadingArquivo(false);
+  };
+
   const gerarAnalise = async () => {
-    if (!indicador.trim()) { alert("Descreva o indicador primeiro."); return; }
+    if (!indicador.trim() && !dadosArquivo) { alert("Descreva o indicador ou suba um arquivo."); return; }
     setLoading(true);
     try {
-      const texto = await gerarAnaliseIndicador(indicador, foco, dados);
+      const contextoArquivo = dadosArquivo ? `\n\nDADOS DO ARQUIVO (${arquivo}):\n${dadosArquivo.substring(0, 3000)}` : "";
+      const texto = await gerarAnaliseIndicador(indicador + contextoArquivo, foco, dados);
       setResult(texto);
-      const novoHistorico = [{ foco: focoAtual?.label, texto: indicador.substring(0, 50), resultado: texto }, ...historico].slice(0, 5);
+      const novoHistorico = [{ foco: focoAtual?.label, texto: indicador.substring(0, 50) || arquivo, resultado: texto }, ...historico].slice(0, 5);
       setHistorico(novoHistorico);
       LS.set("cockpit_historico", novoHistorico);
-      salvarNoHistorico("cockpit", `${focoAtual?.label}: ${indicador}`, texto);
     } catch (e) {
       setResult("Erro ao gerar análise. Verifique sua conexão e tente novamente.");
     }
@@ -1192,7 +1314,7 @@ function CockpitPage({ dados }) {
       <SectionLabel>Análise estratégica</SectionLabel>
       <PageTitle accent="de Indicadores">Cockpit</PageTitle>
       <div style={{ color: V.text2, fontSize: 12, marginBottom: 20 }}>
-        Descreva o que está acontecendo com seu indicador. O Vela traz diagnóstico, causas prováveis e plano de ação.
+        Descreva o que está acontecendo ou suba sua planilha. O Vela identifica segmentações, causas e micro ações.
       </div>
 
       {dados?.contextoSemana && (
@@ -1217,10 +1339,34 @@ function CockpitPage({ dados }) {
           </div>
         </div>
 
+        {/* Upload de planilha */}
         <div style={{ marginBottom: 16 }}>
-          <Label>O que está acontecendo com {focoAtual?.label.split(" ").slice(1).join(" ")}?</Label>
-          <VoiceTextArea value={indicador} onChange={e => setIndicador(e.target.value)} rows={4}
-            placeholder={`Ex: Meu ${focoAtual?.desc.toLowerCase()} caiu de X para Y nos últimos 30 dias. Tivemos 3 situações específicas de... O time está fazendo... Eu suspeito que o problema está em...`} />
+          <Label>Suba sua planilha (opcional)</Label>
+          <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls,.pdf" style={{ display: "none" }}
+            onChange={e => e.target.files[0] && lerArquivo(e.target.files[0])} />
+          {!dadosArquivo ? (
+            <button onClick={() => fileRef.current?.click()}
+              style={{ width: "100%", padding: "14px", border: `1.5px dashed ${V.border2}`, borderRadius: 10, background: V.surface2, cursor: "pointer", fontFamily: "inherit", color: V.text2, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              {loadingArquivo ? "⏳ Lendo arquivo... (PDFs escaneados podem demorar mais)" : "📊 Subir CSV, Excel ou PDF"}
+            </button>
+          ) : (
+            <div style={{ padding: "12px 14px", background: V.tealDim, border: `1px solid ${V.teal}25`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: 12, color: V.teal, fontWeight: 700, marginBottom: 2 }}>📊 {arquivo}</div>
+                <div style={{ fontSize: 10, color: V.text2 }}>{dadosArquivo.includes("OCR") ? "📄 PDF escaneado — texto extraído via OCR" : `${dadosArquivo.split("---").filter(l => l.includes("Página") || l.includes("linhas")).length || dadosArquivo.split("\n").length} blocos carregados — o Vela vai identificar os segmentos`}</div>
+              </div>
+              <button onClick={() => { setArquivo(null); setDadosArquivo(null); }}
+                style={{ background: "none", border: "none", color: V.text2, cursor: "pointer", fontSize: 18, padding: "0 4px" }}>×</button>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <Label>{dadosArquivo ? "Adicione contexto sobre o indicador (opcional)" : `O que está acontecendo com ${focoAtual?.label.split(" ").slice(1).join(" ")}?`}</Label>
+          <VoiceTextArea value={indicador} onChange={e => setIndicador(e.target.value)} rows={dadosArquivo ? 2 : 4}
+            placeholder={dadosArquivo
+              ? "Ex: Quero entender onde está concentrado o problema e quais ações priorizar..."
+              : `Ex: Meu ${focoAtual?.desc.toLowerCase()} caiu de X para Y nos últimos 30 dias. Tivemos 3 situações específicas de...`} />
         </div>
 
         <BtnPrimary onClick={gerarAnalise} loading={loading}>✦ Analisar e receber plano de ação</BtnPrimary>
@@ -1763,46 +1909,59 @@ export default function App() {
 
   return (
     <div style={{ background: V.bg, color: V.text, fontFamily: "'DM Sans', system-ui, sans-serif", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+      <style>{`
+        * { -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2A3050; border-radius: 3px; }
+        @keyframes pulse { 0%,100%{transform:scale(1);opacity:0.3} 50%{transform:scale(1.1);opacity:0.1} }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        button:active { transform: scale(0.98); }
+      `}</style>
 
-      <div style={{ background: V.surface, borderBottom: `1px solid ${V.border}`, padding: "11px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-        <div style={{ width: 28, height: 28, background: `linear-gradient(135deg, ${V.amber}, #D4920A)`, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontFamily: "monospace", color: "#0C0E14", fontWeight: 700 }}>◎</div>
-        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 16, letterSpacing: -0.3, flex: 1 }}>Vela</div>
+      {/* Header */}
+      <div style={{ background: V.gradHeader || V.surface, borderBottom: `1px solid ${V.border}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0, backdropFilter: "blur(12px)" }}>
+        <div style={{ width: 30, height: 30, background: `linear-gradient(135deg, #F5A800, #C8880A)`, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontFamily: "monospace", color: "#080A0F", fontWeight: 700, boxShadow: "0 2px 8px rgba(240,165,0,0.3)" }}>◎</div>
+        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 17, letterSpacing: -0.5, flex: 1, color: V.text }}>Vela</div>
 
-        {/* Toggle de tema */}
         <button onClick={toggleTema}
-          style={{ background: V.surface2, border: `1px solid ${V.border}`, color: V.text2, borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", fontSize: 13, marginRight: 4 }}>
+          style={{ background: V.surface2, border: `1px solid ${V.border}`, color: V.text2, borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", fontSize: 13, marginRight: 4, transition: "all 0.2s" }}>
           {tema === "escuro" ? "☀️" : "🌙"}
         </button>
 
         {dados && (
           <button onClick={() => setOverlay("update")}
-            style={{ background: V.tealDim, border: `1px solid ${V.teal}25`, color: V.teal, borderRadius: 8, padding: "5px 11px", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>
+            style={{ background: V.tealDim, border: `1px solid ${V.teal}30`, color: V.teal, borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600, letterSpacing: "0.3px" }}>
             ◈ Check-out
           </button>
         )}
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "18px 14px", WebkitOverflowScrolling: "touch" }}>
+      {/* Content */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px", WebkitOverflowScrolling: "touch", animation: "fadeIn 0.3s ease" }}>
         {pageMap[page]}
-        <div style={{ height: 40 }} />
+        <div style={{ height: 48 }} />
       </div>
 
-      <div style={{ background: V.surface, borderTop: `1px solid ${V.border}`, display: "flex", flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 8px)" }}>
+      {/* Nav */}
+      <div style={{ background: V.gradNav || V.surface, borderTop: `1px solid ${V.border}`, display: "flex", flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 8px)" }}>
         {NAV.map(n => (
           <button key={n.id} onClick={() => handleNav(n.id)}
-            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: "10px 2px", background: "none", border: "none", color: page === n.id ? V.amber : V.navInativo, cursor: "pointer", fontFamily: "monospace", borderTop: page === n.id ? `2px solid ${V.amber}` : "2px solid transparent", transition: "color 0.15s" }}>
-            <span style={{ fontSize: 17, lineHeight: 1 }}>{n.icon}</span>
-            <span style={{ fontSize: 9, fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{n.label}</span>
+            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, padding: "10px 2px 8px", background: "none", border: "none", color: page === n.id ? V.amber : V.navInativo, cursor: "pointer", fontFamily: "monospace", borderTop: page === n.id ? `1.5px solid ${V.amber}` : "1.5px solid transparent", transition: "color 0.2s", position: "relative" }}>
+            {page === n.id && <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 24, height: 1, background: V.amber, borderRadius: 1, boxShadow: "0 0 8px rgba(240,165,0,0.6)" }} />}
+            <span style={{ fontSize: 16, lineHeight: 1, transition: "transform 0.2s", transform: page === n.id ? "scale(1.1)" : "scale(1)" }}>{n.icon}</span>
+            <span style={{ fontSize: 9, fontWeight: page === n.id ? 700 : 500, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.3px" }}>{n.label}</span>
           </button>
         ))}
       </div>
 
       {overlay && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(12,14,20,0.94)", zIndex: 200, display: "flex", flexDirection: "column", backdropFilter: "blur(8px)" }}>
-          <div style={{ background: V.surface, borderBottom: `1px solid ${V.border}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(8,10,15,0.96)", zIndex: 200, display: "flex", flexDirection: "column", backdropFilter: "blur(12px)", animation: "fadeIn 0.2s ease" }}>
+          <div style={{ background: V.surface, borderBottom: `1px solid ${V.border}`, padding: "13px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 28, height: 28, background: `linear-gradient(135deg, #F5A800, #C8880A)`, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontFamily: "monospace", color: "#080A0F", fontWeight: 700 }}>◎</div>
             <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 16, flex: 1 }}>Vela</div>
-            <button onClick={() => setOverlay(null)} style={{ background: "none", border: "none", color: V.text2, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>Fechar ×</button>
+            <button onClick={() => setOverlay(null)} style={{ background: V.surface2, border: `1px solid ${V.border}`, color: V.text2, cursor: "pointer", fontFamily: "inherit", fontSize: 12, borderRadius: 8, padding: "5px 12px" }}>Fechar ×</button>
           </div>
           <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px" }}>
             <CheckinFlow onComplete={handleComplete} isUpdate={overlay === "update"} dadosExistentes={dados} />
