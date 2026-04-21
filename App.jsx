@@ -1,19 +1,197 @@
 import { useState, useRef, useEffect } from "react";
 
+// ── SUPABASE ──
+const SUPABASE_URL = "https://infqprbswnjtzontvuez.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImluZnFwcmJzd25qdHpvbnR2dWV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODM3MTQsImV4cCI6MjA5MjM1OTcxNH0.T9cxiCbMzsA-vb9O016_VjMPQY4sBxiIT0rg2UkQDaM";
+
+const sb = {
+  async getSession() {
+    const hash = window.location.hash;
+    if (hash.includes("access_token")) {
+      const params = new URLSearchParams(hash.substring(1));
+      const token = params.get("access_token");
+      if (token) {
+        localStorage.setItem("sb_token", token);
+        window.location.hash = "";
+        return token;
+      }
+    }
+    return localStorage.getItem("sb_token");
+  },
+  async getUser(token) {
+    if (!token) return null;
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
+    });
+    if (!res.ok) { localStorage.removeItem("sb_token"); return null; }
+    return res.json();
+  },
+  async signOut() {
+    const token = localStorage.getItem("sb_token");
+    if (token) {
+      await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+        method: "POST",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
+      });
+    }
+    localStorage.removeItem("sb_token");
+    localStorage.removeItem("sb_refresh");
+  },
+  async salvarDados(userId, key, value) {
+    const token = localStorage.getItem("sb_token");
+    if (!token) return;
+    await fetch(`${SUPABASE_URL}/rest/v1/user_data`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates"
+      },
+      body: JSON.stringify({ user_id: userId, key, value: JSON.stringify(value) })
+    });
+  },
+  async carregarDados(userId, key) {
+    const token = localStorage.getItem("sb_token");
+    if (!token) return null;
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/user_data?user_id=eq.${userId}&key=eq.${key}&select=value`, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.length) return null;
+    try { return JSON.parse(data[0].value); } catch { return data[0].value; }
+  }
+};
+
+// Tela de login
+function LoginScreen() {
+  const [modo, setModo] = useState("login"); // login | signup
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState("");
+  const [sucesso, setSucesso] = useState("");
+  const V = TEMAS.escuro;
+
+  const entrar = async () => {
+    if (!email.trim() || !senha.trim()) { setErro("Preencha e-mail e senha."); return; }
+    setLoading(true); setErro("");
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method: "POST",
+        headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: senha })
+      });
+      const data = await res.json();
+      if (!res.ok) { setErro(data.error_description || data.msg || "E-mail ou senha incorretos."); setLoading(false); return; }
+      localStorage.setItem("sb_token", data.access_token);
+      localStorage.setItem("sb_refresh", data.refresh_token || "");
+      window.location.reload();
+    } catch (e) { setErro("Erro de conexão. Tente novamente."); }
+    setLoading(false);
+  };
+
+  const cadastrar = async () => {
+    if (!email.trim() || !senha.trim()) { setErro("Preencha e-mail e senha."); return; }
+    if (senha.length < 6) { setErro("A senha precisa ter pelo menos 6 caracteres."); return; }
+    setLoading(true); setErro("");
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+        method: "POST",
+        headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: senha })
+      });
+      const data = await res.json();
+      if (!res.ok) { setErro(data.error_description || data.msg || "Erro ao criar conta."); setLoading(false); return; }
+      if (data.access_token) {
+        localStorage.setItem("sb_token", data.access_token);
+        localStorage.setItem("sb_refresh", data.refresh_token || "");
+        window.location.reload();
+      } else {
+        setSucesso("Conta criada! Verifique seu e-mail para confirmar o acesso.");
+      }
+    } catch (e) { setErro("Erro de conexão. Tente novamente."); }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ background: V.bg, height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+      <div style={{ width: "100%", maxWidth: 360 }}>
+
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ width: 56, height: 56, background: `linear-gradient(135deg, #F5A800, #C8880A)`, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontFamily: "monospace", color: "#080A0F", fontWeight: 700, margin: "0 auto 16px", boxShadow: "0 4px 20px rgba(240,165,0,0.3)" }}>◎</div>
+          <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 30, fontWeight: 700, color: V.text, marginBottom: 6, letterSpacing: -1 }}>Vela</div>
+          <div style={{ fontSize: 13, color: V.text2 }}>Copiloto do líder de CS e CX</div>
+        </div>
+
+        {/* Princípio */}
+        <div style={{ marginBottom: 28, padding: "16px 18px", background: `linear-gradient(135deg, rgba(240,165,0,0.06), rgba(240,165,0,0.02))`, border: `1px solid rgba(240,165,0,0.15)`, borderRadius: 14 }}>
+          <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 14, fontStyle: "italic", color: V.text, lineHeight: 1.6, marginBottom: 6 }}>
+            "Clareza é uma das maiores formas de respeito que um líder pode oferecer ao time."
+          </div>
+          <div style={{ fontSize: 10, color: V.text2 }}>— Liderança Customer Centric</div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", background: V.surface2, borderRadius: 10, padding: 3, marginBottom: 20 }}>
+          {["login", "signup"].map(m => (
+            <button key={m} onClick={() => { setModo(m); setErro(""); setSucesso(""); }}
+              style={{ flex: 1, padding: "9px", border: "none", borderRadius: 8, background: modo === m ? V.surface : "transparent", color: modo === m ? V.text : V.text2, fontFamily: "inherit", fontSize: 13, fontWeight: modo === m ? 600 : 400, cursor: "pointer", transition: "all 0.2s" }}>
+              {m === "login" ? "Entrar" : "Criar conta"}
+            </button>
+          ))}
+        </div>
+
+        {/* Campos */}
+        <div style={{ marginBottom: 12 }}>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+            placeholder="Seu e-mail"
+            style={{ width: "100%", background: V.surface2, border: `1px solid ${V.border}`, borderRadius: 10, padding: "13px 14px", color: V.text, fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box" }}
+            onFocus={e => e.target.style.borderColor = "#F5A800"}
+            onBlur={e => e.target.style.borderColor = V.border} />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <input type="password" value={senha} onChange={e => setSenha(e.target.value)}
+            placeholder="Senha (mínimo 6 caracteres)"
+            onKeyDown={e => e.key === "Enter" && (modo === "login" ? entrar() : cadastrar())}
+            style={{ width: "100%", background: V.surface2, border: `1px solid ${V.border}`, borderRadius: 10, padding: "13px 14px", color: V.text, fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box" }}
+            onFocus={e => e.target.style.borderColor = "#F5A800"}
+            onBlur={e => e.target.style.borderColor = V.border} />
+        </div>
+
+        {erro && <div style={{ background: "rgba(251,113,133,0.1)", border: "1px solid rgba(251,113,133,0.2)", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#FB7185", marginBottom: 12 }}>{erro}</div>}
+        {sucesso && <div style={{ background: "rgba(45,212,191,0.1)", border: "1px solid rgba(45,212,191,0.2)", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#2DD4BF", marginBottom: 12 }}>{sucesso}</div>}
+
+        <button onClick={modo === "login" ? entrar : cadastrar} disabled={loading}
+          style={{ width: "100%", background: loading ? V.surface3 : `linear-gradient(135deg, #F5A800, #C8880A)`, color: loading ? V.text2 : "#080A0F", border: "none", borderRadius: 12, padding: "14px", fontFamily: "'Playfair Display', Georgia, serif", fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", boxShadow: loading ? "none" : "0 4px 20px rgba(240,165,0,0.25)", transition: "all 0.2s" }}>
+          {loading ? "Aguarde..." : modo === "login" ? "✦ Entrar" : "✦ Criar minha conta"}
+        </button>
+
+        <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: V.text3, lineHeight: 1.6 }}>
+          Seus dados ficam seguros e vinculados ao seu e-mail.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const TEMAS = {
   escuro: {
-    bg: "#080A0F", surface: "#0E1018", surface2: "#141720", surface3: "#1C2030",
-    border: "#1E2235", border2: "#2A3050",
-    amber: "#F0A500", amberDim: "rgba(240,165,0,0.10)", amberGlow: "rgba(240,165,0,0.05)",
+    bg: "#1C1E24", surface: "#24262E", surface2: "#2C2F38", surface3: "#343740",
+    border: "#3A3D48", border2: "#46495A",
+    amber: "#F0A500", amberDim: "rgba(240,165,0,0.10)", amberGlow: "rgba(240,165,0,0.06)",
     teal: "#2DD4BF", tealDim: "rgba(45,212,191,0.10)",
     rose: "#FB7185", roseDim: "rgba(251,113,133,0.10)",
     indigo: "#818CF8", indigoDim: "rgba(129,140,248,0.10)",
-    text: "#EEF0FA", text2: "#7880A8", text3: "#3A4060",
-    navInativo: "#50587A",
-    gradCard: "linear-gradient(145deg, #0E1018 0%, #111420 100%)",
-    gradHeader: "linear-gradient(180deg, #0E1018 0%, #0C0E16 100%)",
-    gradNav: "linear-gradient(0deg, #0A0C14 0%, #0E1018 100%)",
-    shadowCard: "0 2px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03)",
+    text: "#F0F2F8", text2: "#9098B8", text3: "#5A6080",
+    navInativo: "#6870A0",
+    gradCard: "linear-gradient(145deg, #26282F 0%, #222530 100%)",
+    gradHeader: "linear-gradient(180deg, #242630 0%, #1E2028 100%)",
+    gradNav: "linear-gradient(0deg, #1A1C22 0%, #22242C 100%)",
+    shadowCard: "0 2px 12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.04)",
     shadowAmber: "0 0 20px rgba(240,165,0,0.08)",
   },
   claro: {
@@ -821,16 +999,19 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
 
       {!isUpdate && (
         <div style={{ borderTop: `1px solid ${V.border}`, paddingTop: 20 }}>
-          <div style={{ fontSize: 11, color: V.text2, textAlign: "center", marginBottom: 16, letterSpacing: "0.5px" }}>
-            — opcional, mas melhora muito as respostas —
+          <div style={{ background: `linear-gradient(135deg, rgba(240,165,0,0.06), rgba(240,165,0,0.02))`, border: `1px solid rgba(240,165,0,0.15)`, borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
+            <div style={{ fontSize: 11, color: V.amber, fontWeight: 700, marginBottom: 4, letterSpacing: "0.5px" }}>✦ Personaliza todas as respostas do Vela</div>
+            <div style={{ fontSize: 11, color: V.text2, lineHeight: 1.6 }}>Quanto mais contexto você der sobre seu estilo e sua empresa, mais específicas ficam as análises.</div>
           </div>
 
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <span style={{ color: V.amber, fontFamily: "monospace" }}>◎</span>
-              <Label>Meu estilo de liderança</Label>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <span style={{ color: V.amber, fontFamily: "monospace", fontSize: 16 }}>◎</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: V.text }}>Meu estilo de liderança</div>
+                <div style={{ fontSize: 11, color: V.text2 }}>Como você lidera, pontos fortes, desafios recorrentes</div>
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: V.text2, marginBottom: 8, lineHeight: 1.6 }}>Como você lidera, seus pontos fortes, desafios recorrentes. O Vela adapta todas as respostas ao seu estilo.</div>
             <VoiceTextArea
               value={estiloCheckin}
               onChange={e => setEstiloCheckin(e.target.value)}
@@ -840,16 +1021,18 @@ function CheckinFlow({ onComplete, isUpdate, dadosExistentes }) {
           </div>
 
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <span style={{ color: V.indigo, fontFamily: "monospace" }}>◈</span>
-              <Label>Cultura da empresa</Label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <span style={{ color: V.indigo, fontFamily: "monospace", fontSize: 16 }}>◈</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: V.text }}>Cultura da empresa</div>
+                <div style={{ fontSize: 11, color: V.text2 }}>Valores, jeito de trabalhar, contexto do negócio</div>
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: V.text2, marginBottom: 8, lineHeight: 1.6 }}>Cole o código de cultura, valores ou descreva como a empresa funciona. O Vela usa isso para contextualizar todas as análises.</div>
             <VoiceTextArea
               value={culturaCheckin}
               onChange={e => setCulturaCheckin(e.target.value)}
               rows={3}
-              placeholder="Ex: Empresa de alto crescimento, cultura de ownership, feedback direto, velocidade sobre perfeição..."
+              placeholder="Ex: Startup B2B SaaS em crescimento, cultura de ownership, feedback direto, velocidade sobre perfeição..."
             />
           </div>
         </div>
@@ -1869,6 +2052,34 @@ export default function App() {
   const [dados, setDados] = useState(() => LS.get("dados", null));
   const [overlay, setOverlay] = useState(null);
   const [tema, setTema] = useState(() => LS.get("tema", "escuro"));
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Autenticação
+  useEffect(() => {
+    const init = async () => {
+      const token = await sb.getSession();
+      if (token) {
+        const u = await sb.getUser(token);
+        if (u) {
+          setUser(u);
+          // Migra dados do localStorage para o Supabase se existirem
+          const dadosLocal = LS.get("dados", null);
+          if (dadosLocal) {
+            await sb.salvarDados(u.id, "dados", dadosLocal);
+          }
+          // Carrega dados do Supabase
+          const dadosRemoto = await sb.carregarDados(u.id, "dados");
+          if (dadosRemoto) {
+            setDados(dadosRemoto);
+            LS.set("dados", dadosRemoto);
+          }
+        }
+      }
+      setAuthLoading(false);
+    };
+    init();
+  }, []);
 
   // Atualiza V globalmente quando tema muda
   V = TEMAS[tema] || TEMAS.escuro;
@@ -1879,9 +2090,10 @@ export default function App() {
     LS.set("tema", novoTema);
   };
 
-  const handleComplete = (d) => {
+  const handleComplete = async (d) => {
     setDados(d);
     LS.set("dados", d);
+    if (user) await sb.salvarDados(user.id, "dados", d);
     setOverlay(null);
     setPage("cockpit");
     LS.set("page", "cockpit");
@@ -1891,6 +2103,17 @@ export default function App() {
     setPage(p);
     LS.set("page", p);
   };
+
+  if (authLoading) return (
+    <div style={{ background: TEMAS.escuro.bg, height: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 40, height: 40, background: `linear-gradient(135deg, #F5A800, #C8880A)`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontFamily: "monospace", color: "#080A0F", margin: "0 auto 12px" }}>◎</div>
+        <div style={{ color: TEMAS.escuro.text2, fontSize: 12 }}>Carregando...</div>
+      </div>
+    </div>
+  );
+
+  if (!user) return <LoginScreen />;
 
   const pageMap = {
     home: <HomePage dados={dados} onCheckin={() => setOverlay("checkin")} onUpdate={() => setOverlay("update")} onNav={handleNav} />,
@@ -1929,6 +2152,23 @@ export default function App() {
           style={{ background: V.surface2, border: `1px solid ${V.border}`, color: V.text2, borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", fontSize: 13, marginRight: 4, transition: "all 0.2s" }}>
           {tema === "escuro" ? "☀️" : "🌙"}
         </button>
+
+        {/* Avatar do usuário */}
+        {user && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {user.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url} style={{ width: 28, height: 28, borderRadius: "50%", border: `1.5px solid ${V.border2}` }} alt="avatar" />
+            ) : (
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: V.surface3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: V.text2, border: `1.5px solid ${V.border2}` }}>
+                {(user.user_metadata?.full_name || user.email || "U")[0].toUpperCase()}
+              </div>
+            )}
+            <button onClick={async () => { await sb.signOut(); setUser(null); }}
+              style={{ background: "none", border: "none", color: V.text3, cursor: "pointer", fontSize: 11, fontFamily: "inherit", padding: "2px 4px" }}>
+              Sair
+            </button>
+          </div>
+        )}
 
         {dados && (
           <button onClick={() => setOverlay("update")}
